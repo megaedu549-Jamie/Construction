@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>벽체 철근 개수 산정</title>
+<!-- 인터넷 연결 시 IBM Plex 글꼴 사용, 오프라인이면 맑은 고딕·Consolas로 표시. 3D 보기는 외부 라이브러리 없이 동작 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 아이보리 바탕 위 볼록한 카드들 — 벽체 칩 선택 → 치수 → H/V 카드 2열 → 진행 바 → 도면 → 목록 → 합계 → 하단 타일 2개 */
+:root {
+  --bg: #f4efe9;            /* Ivory 바탕 */
+  --card: #f7f3ee;
+  --ink: #2f2d2b;           /* Ink */
+  --ink-2: #7a726b;
+  --ink-3: #b3aaa2;
+  --clay: #c4553a;          /* Clay — 강조 / H 앵커 */
+  --clay-ink: #fff8f3;
+  --peach: #f2c6b0;         /* Peach */
+  --ubar: #2f6f73;          /* U바 (청록) */
+  --wall: #ece5dd;
+  --hatch: #ddd3c9;
+  --danger: #b3261e;
+  --sh-dark: rgba(166, 146, 128, 0.38);
+  --sh-light: rgba(255, 255, 255, 0.95);
+  --font: "IBM Plex Sans KR", "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif;
+  --mono: "IBM Plex Mono", Consolas, "D2Coding", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #23201e; --card: #262321; --ink: #efe8e1; --ink-2: #aaa098; --ink-3: #6b635d;
+    --clay: #e0704f; --clay-ink: #2a1610; --peach: #7a4a38; --ubar: #5fb8b6;
+    --wall: #2d2927; --hatch: #3a3532; --danger: #ff8a80;
+    --sh-dark: rgba(0, 0, 0, 0.5); --sh-light: rgba(255, 255, 255, 0.045);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #23201e; --card: #262321; --ink: #efe8e1; --ink-2: #aaa098; --ink-3: #6b635d;
+  --clay: #e0704f; --clay-ink: #2a1610; --peach: #7a4a38; --ubar: #5fb8b6;
+  --wall: #2d2927; --hatch: #3a3532; --danger: #ff8a80;
+  --sh-dark: rgba(0, 0, 0, 0.5); --sh-light: rgba(255, 255, 255, 0.045);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.5; }
+.app {
+  max-width: 900px; margin: 0 auto; display: grid; gap: 22px;
+  padding-block: 36px 60px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app > * { min-width: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.label { font-size: 13px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; }
+.sub { font-size: 12px; color: var(--ink-2); }
+
+/* 볼록 / 오목 */
+.raised { background: var(--card); border-radius: 18px; box-shadow: 7px 7px 16px var(--sh-dark), -7px -7px 16px var(--sh-light); }
+.well { background: var(--bg); border-radius: 12px; box-shadow: inset 3px 3px 7px var(--sh-dark), inset -3px -3px 7px var(--sh-light); }
+.card { padding: 20px 22px; display: grid; gap: 14px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--clay); outline-offset: 3px; }
+.pill {
+  border-radius: 999px; padding: 10px 20px; font-size: 15px; background: var(--card); color: var(--ink);
+  box-shadow: 4px 4px 10px var(--sh-dark), -4px -4px 10px var(--sh-light); transition: transform .12s, box-shadow .12s;
+}
+.pill:hover { transform: translateY(-1px); }
+.pill:active { box-shadow: inset 3px 3px 7px var(--sh-dark), inset -3px -3px 7px var(--sh-light); transform: none; }
+.pill.on { background: var(--clay); color: var(--clay-ink); box-shadow: 4px 4px 10px var(--sh-dark), -4px -4px 10px var(--sh-light), inset 0 1px 0 rgba(255,255,255,.18); }
+.pill.sm { padding: 7px 14px; font-size: 13px; }
+.pill.danger { color: var(--danger); }
+
+input {
+  font: inherit; color: var(--ink); border: 0; width: 100%; min-width: 0;
+  background: var(--bg); border-radius: 12px; padding: 10px 14px;
+  box-shadow: inset 3px 3px 7px var(--sh-dark), inset -3px -3px 7px var(--sh-light);
+}
+input::placeholder { color: var(--ink-3); }
+input.bad { color: var(--danger); box-shadow: inset 3px 3px 7px var(--sh-dark), inset -3px -3px 7px var(--sh-light), 0 0 0 1.5px var(--danger); }
+
+/* 헤더 */
+header { display: grid; gap: 8px; padding-inline: 4px; }
+h1 { margin: 0; font-size: clamp(30px, 6.4vw, 46px); font-weight: 500; letter-spacing: 0.08em; text-wrap: balance; }
+h1 .sl { color: var(--clay); font-weight: 400; margin: 0 0.12em; }
+.tagline { font-size: 12px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--ink-2); }
+
+/* 벽체 칩 */
+.chips { display: flex; gap: 14px; overflow-x: auto; padding: 8px 6px 14px; scrollbar-width: thin; }
+.chip-col { display: grid; justify-items: center; gap: 6px; flex: none; }
+.chip-col .d { font-size: 11px; color: var(--ink-2); letter-spacing: 0.08em; min-height: 16px; }
+.chip {
+  width: 56px; height: 56px; border-radius: 50%; background: var(--card); font-size: 15px; font-variant-numeric: tabular-nums;
+  box-shadow: 4px 4px 10px var(--sh-dark), -4px -4px 10px var(--sh-light); display: grid; place-items: center; position: relative;
+}
+.chip.sel { background: var(--clay); color: var(--clay-ink); }
+.chip.off { color: var(--ink-3); }
+.chip .dot { position: absolute; bottom: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--clay); }
+.chip.sel .dot { background: var(--clay-ink); }
+.chip.add { font-size: 22px; color: var(--clay); }
+
+/* 치수 */
+.dims { display: grid; grid-template-columns: minmax(0, 1.1fr) repeat(3, minmax(0, 1fr)); gap: 14px; align-items: end; }
+@media (max-width: 760px) { .dims { grid-template-columns: repeat(3, minmax(0, 1fr)); } .dims .nm { grid-column: 1 / -1; } }
+@media (max-width: 600px) { .dims { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .dims .nm { grid-column: 1 / -1; } }
+.field { display: grid; gap: 6px; }
+.field > span { font-size: 12px; color: var(--ink-2); letter-spacing: 0.06em; }
+.dims input { font-size: 20px; font-weight: 500; }
+.dims input.n { text-align: right; font-family: var(--mono); }
+.status { font-size: 14px; color: var(--ink-2); }
+.status b { color: var(--ink); font-weight: 600; }
+
+/* H / V */
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+@media (max-width: 680px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.hv .label { display: flex; align-items: center; gap: 10px; }
+.sw { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: 2px 2px 4px var(--sh-dark), -2px -2px 4px var(--sh-light); }
+.sw.a { background: var(--clay); } .sw.b { background: var(--ubar); }
+.spec { display: flex; align-items: center; gap: 4px; padding: 6px 12px; font-family: var(--mono); font-size: 22px; }
+.spec .fix { color: var(--ink); font-weight: 500; padding: 0 2px; }
+.spec input {
+  box-shadow: none; background: transparent; border-radius: 8px; padding: 4px 4px;
+  font-family: var(--mono); font-size: 22px; font-weight: 500; text-align: center; border-bottom: 1.5px dashed var(--ink-3);
+}
+.spec input.d { width: 3.6ch; } .spec input.s { width: 4.8ch; }
+.spec input:focus { background: var(--card); border-bottom-color: var(--clay); outline: none; }
+.spec input::placeholder { font-family: var(--font); font-size: 13px; color: var(--ink-3); }
+.spec.bad { box-shadow: inset 3px 3px 7px var(--sh-dark), inset -3px -3px 7px var(--sh-light), 0 0 0 1.5px var(--danger); }
+.seg { display: flex; flex-wrap: wrap; gap: 12px; }
+.stepper { display: flex; align-items: center; gap: 12px; }
+.circ-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--card); font-size: 20px; line-height: 1; color: var(--clay);
+  box-shadow: 4px 4px 10px var(--sh-dark), -4px -4px 10px var(--sh-light); }
+.circ-btn:active { box-shadow: inset 3px 3px 7px var(--sh-dark), inset -3px -3px 7px var(--sh-light); }
+.circ-btn:disabled { opacity: 0.4; cursor: default; }
+.stepper .sv { font-size: 24px; font-weight: 600; min-width: 1.4ch; text-align: center; }
+.count { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.count .big { font-size: clamp(40px, 7vw, 56px); font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.count .big small { font-size: 0.4em; font-weight: 500; letter-spacing: 0; margin-left: 2px; }
+.count.a .big { color: var(--clay); }
+.count.b .big { color: var(--ubar); }
+
+/* 진행 바 */
+.prog { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+.track { height: 14px; border-radius: 999px; background: var(--bg); box-shadow: inset 2px 2px 5px var(--sh-dark), inset -2px -2px 5px var(--sh-light); position: relative; }
+.fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--clay), color-mix(in srgb, var(--clay) 80%, var(--peach))); transition: width .3s; }
+.knob { position: absolute; top: 50%; width: 30px; height: 30px; margin-left: -15px; margin-top: -15px; border-radius: 50%; background: var(--card); box-shadow: 3px 3px 8px var(--sh-dark), -3px -3px 8px var(--sh-light); transition: left .3s; }
+.pct { font-size: 20px; font-variant-numeric: tabular-nums; }
+
+/* 도면 */
+.draw-scroll { overflow-x: auto; border-radius: 12px; }
+svg.draw { width: 100%; min-width: 520px; height: auto; display: block; }
+svg .wall { fill: var(--wall); stroke: var(--ink-2); stroke-width: 1; }
+svg .hatch { stroke: var(--hatch); stroke-width: 1; }
+svg .dim { stroke: var(--ink-3); stroke-width: 0.8; fill: none; }
+svg .dimtxt { fill: var(--ink-2); font-family: var(--mono); font-size: 12px; }
+svg .lbl { fill: var(--ink); font-family: var(--font); font-size: 12px; font-weight: 600; letter-spacing: 0.1em; }
+svg .lbl-a { fill: var(--clay); font-family: var(--mono); font-size: 12px; font-weight: 500; }
+svg .lbl-b { fill: var(--ubar); font-family: var(--mono); font-size: 12px; font-weight: 500; }
+svg .bar-a { stroke: var(--clay); fill: none; stroke-linecap: round; }
+svg .dot-a { fill: var(--clay); }
+svg .bar-b { stroke: var(--ubar); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.basis { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); font-family: var(--mono); }
+.basis b { font-weight: 500; }
+.basis .a b { color: var(--clay); } .basis .b b { color: var(--ubar); }
+.empty { color: var(--ink-2); padding: 28px 8px; text-align: center; }
+
+/* 목록 */
+.list-scroll { overflow-x: auto; }
+.list { width: 100%; border-collapse: collapse; min-width: 600px; font-variant-numeric: tabular-nums; }
+.list td { padding: 11px 8px 11px 0; border-top: 1px solid var(--hatch); white-space: nowrap; }
+.list tr:first-child td { border-top: 0; }
+.list tr { cursor: pointer; }
+.list tr.sel td.nm { color: var(--clay); font-weight: 600; }
+.list tr.off td:not(.tg):not(.del) { color: var(--ink-3); }
+.list td.nm { width: 16%; font-weight: 500; }
+.list .ca { color: var(--clay); } .list .cb { color: var(--ubar); }
+.list tr.off .ca, .list tr.off .cb { color: var(--ink-3); }
+.list td.tg, .list td.del { width: 1%; text-align: right; }
+.del button { color: var(--ink-3); font-size: 16px; padding: 4px 6px; }
+.del button:hover { color: var(--danger); }
+.switch { width: 50px; height: 28px; border-radius: 999px; position: relative; background: var(--bg); box-shadow: inset 2px 2px 5px var(--sh-dark), inset -2px -2px 5px var(--sh-light); }
+.switch::after { content: ""; position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--card); box-shadow: 2px 2px 5px var(--sh-dark); transition: left .15s; }
+.switch[aria-checked="true"] { background: var(--clay); }
+.switch[aria-checked="true"]::after { left: 26px; }
+
+/* 합계 */
+.sum { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; }
+@media (max-width: 560px) { .sum { grid-template-columns: minmax(0, 1fr); } }
+.sum table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.sum th { font-size: 11px; letter-spacing: 0.12em; font-weight: 500; color: var(--ink-2); text-align: right; padding: 0 0 8px 12px; }
+.sum th:first-child, .sum td:first-child { text-align: left; padding-left: 0; }
+.sum td { text-align: right; padding: 9px 0 9px 12px; border-top: 1px solid var(--hatch); font-size: 15px; }
+.sum td.a { color: var(--clay); } .sum td.b { color: var(--ubar); }
+.grand { text-align: right; }
+.grand .big { font-size: clamp(44px, 8vw, 64px); font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.note { margin: 0; font-size: 12px; color: var(--ink-2); }
+textarea.copybox { width: 100%; height: 120px; font-family: var(--mono); font-size: 12px; color: var(--ink); background: var(--bg); border: 0; border-radius: 12px; padding: 10px; box-shadow: inset 3px 3px 7px var(--sh-dark), inset -3px -3px 7px var(--sh-light); }
+
+/* 타일 */
+.tile { display: flex; align-items: center; gap: 22px; padding: 22px 26px; text-align: left; font-size: 17px; width: 100%; }
+.tile .ic { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; flex: none; box-shadow: 4px 4px 10px var(--sh-dark), -4px -4px 10px var(--sh-light); background: var(--card); }
+.tile .ic.c { background: var(--clay); color: var(--clay-ink); }
+.tile .ic svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tile small { display: block; font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+.tile:hover .ic { transform: translateY(-1px); }
+.confirm { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--danger); }
+
+.v3d { position: relative; height: clamp(320px, 56vw, 520px); overflow: hidden; touch-action: none; }
+.v3d canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+.v3d canvas:active { cursor: grabbing; }
+.allgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: 18px; }
+.allgrid .item { min-width: 0; padding: 12px; }
+.allgrid .item h3 { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; }
+.allgrid svg.draw { min-width: 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>벽체<span class="sl">/</span>철근 산정</h1>
+    <div class="tagline">Wall rebar count · 앵커 · U바</div>
+  </header>
+
+  <!-- 벽체 선택 + 치수 -->
+  <section class="raised card" aria-labelledby="t-wall">
+    <div class="card-head"><span class="label" id="t-wall">벽체 선택</span><span class="sub" id="wall-count"></span></div>
+    <div class="chips" id="chips" role="tablist" aria-label="벽체"></div>
+    <div class="dims">
+      <label class="field nm"><span>위치 / 이름</span><input id="f-name" placeholder="W1"></label>
+      <label class="field"><span>길이 L (mm)</span><input id="f-L" class="n" inputmode="numeric" placeholder="예) 8800"></label>
+      <label class="field"><span>높이 H (mm)</span><input id="f-H" class="n" inputmode="numeric" placeholder="예) 4900"></label>
+      <label class="field"><span>두께 T (mm)</span><input id="f-T" class="n" inputmode="numeric" placeholder="예) 300"></label>
+    </div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <!-- H / V -->
+  <div class="two">
+    <section class="raised card hv" aria-labelledby="t-h">
+      <span class="label" id="t-h"><i class="sw a"></i>H · 앵커</span>
+      <div class="field"><span>규격 · 지름 D / 간격 @ (mm) · L=200</span>
+        <div class="spec well" id="spec-a"><span class="fix">D</span><input class="d" id="f-ad" inputmode="numeric" maxlength="2" placeholder="지름" aria-label="H 앵커 지름"><span class="fix">@</span><input class="s" id="f-as" inputmode="numeric" maxlength="4" placeholder="간격" aria-label="H 앵커 간격"></div>
+      </div>
+      <div class="field"><span>배근</span>
+        <div class="seg" id="seg-face"><button type="button" class="pill" data-v="1">한면</button><button type="button" class="pill" data-v="2">양면</button></div>
+      </div>
+      <div class="field"><span>개소당 앵커 수 (두께 방향)</span>
+        <div class="stepper" id="step-n">
+          <button type="button" class="circ-btn" data-d="-1" aria-label="앵커 수 줄이기">−</button>
+          <span class="sv num" id="o-n" aria-live="polite">1</span><span class="sub">개</span>
+          <button type="button" class="circ-btn" data-d="1" aria-label="앵커 수 늘리기">+</button>
+        </div>
+      </div>
+      <div class="count a"><span class="big num" id="o-h">–</span><span class="sub num" id="o-h2"></span></div>
+    </section>
+    <section class="raised card hv" aria-labelledby="t-v">
+      <span class="label" id="t-v"><i class="sw b"></i>V · U바</span>
+      <div class="field"><span>규격 · 지름 D / 간격 @ (mm)</span>
+        <div class="spec well" id="spec-b"><span class="fix">D</span><input class="d" id="f-bd" inputmode="numeric" maxlength="2" placeholder="지름" aria-label="V U바 지름"><span class="fix">@</span><input class="s" id="f-bs" inputmode="numeric" maxlength="4" placeholder="간격" aria-label="V U바 간격"></div>
+      </div>
+      <div class="field"><span>설치 위치</span>
+        <div class="seg" id="seg-u"><button type="button" class="pill" data-v="top">상부</button><button type="button" class="pill" data-v="bot">하부</button><button type="button" class="pill" data-v="both">상하부</button></div>
+      </div>
+      <div class="count b"><span class="big num" id="o-v">–</span><span class="sub num" id="o-v2"></span></div>
+    </section>
+  </div>
+
+  <!-- 진행 -->
+  <section class="raised card" aria-labelledby="t-prog">
+    <span class="label" id="t-prog">입력 진행</span>
+    <div class="prog">
+      <div class="track" role="progressbar" aria-labelledby="t-prog" id="prog" aria-valuemin="0" aria-valuemax="100"><div class="fill" id="fill"></div><div class="knob" id="knob"></div></div>
+      <span class="pct" id="pct">0%</span>
+    </div>
+  </section>
+
+  <!-- 도면 -->
+  <section class="raised card" aria-labelledby="t-draw">
+    <div class="card-head">
+      <span class="label" id="t-draw">도면 · <span id="draw-name"></span></span>
+      <button type="button" class="pill sm" id="btn-all">3D 보기</button>
+    </div>
+    <div class="legend"><span><i class="sw a"></i>H 앵커</span><span><i class="sw b"></i>V U바</span></div>
+    <div class="draw-scroll" id="draw"></div>
+    <div class="basis" id="basis"></div>
+  </section>
+
+  <section class="raised card" id="all-box" hidden aria-labelledby="t-all">
+    <div class="card-head">
+      <span class="label" id="t-all">3D 보기</span>
+      <div class="seg" id="seg-3d">
+        <button type="button" class="pill sm" data-v="sel">선택 벽체</button>
+        <button type="button" class="pill sm" data-v="all">전체 벽체</button>
+        <button type="button" class="pill sm" id="v3d-fit">시점 초기화</button>
+        <button type="button" class="pill sm" id="btn-all2">닫기</button>
+      </div>
+    </div>
+    <div class="v3d well" id="v3d"><canvas id="v3d-canvas" aria-label="벽체 3D 보기"></canvas></div>
+    <div class="legend"><span><i class="sw a"></i>H 앵커</span><span><i class="sw b"></i>V U바</span><span>드래그: 회전 · Shift/우클릭 드래그: 이동 · 휠/두 손가락: 확대</span></div>
+  </section>
+
+  <!-- 목록 -->
+  <section class="raised card" aria-labelledby="t-list">
+    <div class="card-head"><span class="label" id="t-list">벽체 목록</span><span class="sub">스위치 OFF는 합계에서 제외</span></div>
+    <div class="list-scroll"><table class="list"><tbody id="rows"></tbody></table></div>
+  </section>
+
+  <!-- 합계 -->
+  <section class="raised card" aria-labelledby="t-sum">
+    <div class="card-head">
+      <span class="label" id="t-sum">직경별 합계</span>
+      <span id="reset-zone"><button type="button" class="pill sm danger" id="btn-reset">전체 초기화</button></span>
+    </div>
+    <div class="sum">
+      <table>
+        <thead><tr><th>규격</th><th>H 앵커</th><th>V U바</th><th>합계</th></tr></thead>
+        <tbody id="sum-body"></tbody>
+      </table>
+      <div class="grand"><div class="sub">총 개수 (ea)</div><div class="big num" id="grand">0</div></div>
+    </div>
+    <p class="note" id="copy-msg">엑셀용 복사는 합계에 포함된 벽체를 산출근거와 함께 탭 구분으로 복사합니다.</p>
+    <div id="copy-fallback"></div>
+  </section>
+
+  <!-- 타일 -->
+  <div class="two">
+    <button type="button" class="raised tile" id="add">
+      <span class="ic c"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+      <span>벽체 추가<small>새 벽체를 목록 끝에 추가</small></span>
+    </button>
+    <button type="button" class="raised tile" id="btn-copy">
+      <span class="ic"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></span>
+      <span>엑셀용 복사<small>엑셀 셀에 바로 붙여넣기</small></span>
+    </button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var KEY = 'rebar-wall-count-v1';
+  var MIN_ROWS = 10, ANCHOR_LEN = 200;
+  var U_MULT = { top: 1, bot: 1, both: 2 };
+  var U_LABEL = { top: '상부', bot: '하부', both: '상하부' };
+
+  function blank() { return { name: '', L: '', H: '', T: '', a: '', face: '2', n: '1', b: '', u: 'top', on: true }; }
+  function sample() {
+    var w = [{ name: 'W1', L: '8800', H: '4900', T: '300', a: 'D13@150', face: '2', n: '1', b: 'D16@200', u: 'top', on: true }];
+    while (w.length < MIN_ROWS) w.push(blank());
+    return w;
+  }
+  var state = { walls: sample(), sel: 0, showAll: false, mode3d: 'all' };
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && Array.isArray(saved.walls) && saved.walls.length) {
+      state.walls = saved.walls.map(function (w) { var b = blank(); for (var k in b) if (w[k] !== undefined) b[k] = w[k]; return b; });
+      state.sel = Math.min(saved.sel || 0, state.walls.length - 1);
+      state.showAll = !!saved.showAll;
+      state.mode3d = saved.mode3d === 'sel' ? 'sel' : 'all';
+    }
+  } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  // ---------- 계산 ----------
+  function parseSpec(s) {
+    var m = String(s || '').toUpperCase().replace(/\s/g, '').match(/^H?D(\d{1,2})@(\d+(?:\.\d+)?)/);
+    if (!m) return null;
+    var d = +m[1], sp = +m[2];
+    return (d > 0 && sp > 0) ? { d: d, s: sp, label: 'D' + d + '@' + m[2] } : null;
+  }
+  function per(len, sp) { return Math.max(0, Math.ceil(len / sp - 1e-9) - 1); }
+  function calc(w) {
+    var L = parseFloat(w.L), H = parseFloat(w.H), a = parseSpec(w.a), b = parseSpec(w.b);
+    var T = parseFloat(w.T);
+    var r = { L: L > 0 ? L : null, H: H > 0 ? H : null, T: T > 0 ? T : null, a: a, b: b, face: +w.face === 1 ? 1 : 2, umult: U_MULT[w.u] || 1 };
+    r.Tv = r.T || 300; // 두께 미입력 시 그림용 300
+    r.n = Math.max(1, Math.min(9, parseInt(w.n, 10) || 1));
+    if (r.H && a) { r.hPer = per(r.H, a.s); r.hTot = r.hPer * r.face * r.n; }
+    if (r.L && b) { r.vPer = per(r.L, b.s); r.vTot = r.vPer * r.umult; }
+    return r;
+  }
+  function fmt(n) { return Number(n).toLocaleString('ko-KR'); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function wallName(i) { var n = (state.walls[i].name || '').trim(); return n || ('W' + (i + 1)); }
+  function isFilled(w) { var r = calc(w); return r.hTot != null && r.vTot != null; }
+  function $(id) { return document.getElementById(id); }
+
+  // ---------- 편집 ----------
+  var fields = { name: $('f-name'), L: $('f-L'), H: $('f-H'), T: $('f-T') };
+  // 규격: D·@ 고정, 지름·간격만 입력
+  var specs = { a: { d: $('f-ad'), s: $('f-as'), box: $('spec-a') }, b: { d: $('f-bd'), s: $('f-bs'), box: $('spec-b') } };
+  function splitSpec(v) {
+    var m = String(v || '').toUpperCase().replace(/\s/g, '').match(/^H?D?(\d*)@?(\d*(?:\.\d+)?)/);
+    return m ? [m[1], m[2]] : ['', ''];
+  }
+  function loadEditor() {
+    var w = state.walls[state.sel];
+    Object.keys(fields).forEach(function (k) { fields[k].value = w[k] || ''; });
+    Object.keys(specs).forEach(function (k) { var p = splitSpec(w[k]); specs[k].d.value = p[0]; specs[k].s.value = p[1]; });
+  }
+  Object.keys(specs).forEach(function (k) {
+    var sp = specs[k];
+    function sync(src) {
+      var d = sp.d.value.replace(/\D/g, '').slice(0, 2), s = sp.s.value.replace(/[^\d]/g, '').slice(0, 4);
+      if (sp.d.value !== d) sp.d.value = d;
+      if (sp.s.value !== s) sp.s.value = s;
+      state.walls[state.sel][k] = (d || s) ? 'D' + d + '@' + s : '';
+      if (src === 'd' && d.length === 2) { sp.s.focus(); sp.s.select(); }
+      refresh(); save();
+    }
+    sp.d.addEventListener('input', function () { sync('d'); });
+    sp.s.addEventListener('input', function () { sync('s'); });
+    sp.d.addEventListener('keydown', function (e) { if (e.key === '@' || e.key === 'Enter') { e.preventDefault(); sp.s.focus(); sp.s.select(); } });
+    sp.s.addEventListener('keydown', function (e) { if (e.key === 'Backspace' && !sp.s.value) { e.preventDefault(); sp.d.focus(); } });
+  });
+  function setSeg(id, v) {
+    Array.prototype.forEach.call($(id).children, function (b) {
+      var on = b.dataset.v === v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+    });
+  }
+  Object.keys(fields).forEach(function (k) {
+    fields[k].addEventListener('input', function () { state.walls[state.sel][k] = fields[k].value; refresh(); save(); });
+  });
+  $('seg-face').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; state.walls[state.sel].face = b.dataset.v; refresh(); save(); });
+  $('step-n').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-d]'); if (!b) return;
+    var w = state.walls[state.sel], n = Math.max(1, Math.min(9, (parseInt(w.n, 10) || 1) + (+b.dataset.d)));
+    w.n = String(n); refresh(); save();
+  });
+  $('seg-u').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; state.walls[state.sel].u = b.dataset.v; refresh(); save(); });
+
+  function select(i) { state.sel = i; loadEditor(); refresh(); save(); }
+  function addWall() {
+    state.walls.push(blank()); select(state.walls.length - 1);
+    var c = $('chips'); c.scrollLeft = c.scrollWidth; fields.L.focus({ preventScroll: true });
+  }
+
+  // ---------- 칩 ----------
+  $('chips').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.add) addWall(); else select(+b.dataset.i);
+  });
+  function renderChips() {
+    $('chips').innerHTML = state.walls.map(function (w, i) {
+      var sel = i === state.sel, r = calc(w);
+      var d = r.L && r.H ? (r.L / 1000).toFixed(1) + 'm' : '';
+      return '<div class="chip-col"><span class="d num">' + d + '</span><button type="button" role="tab" aria-selected="' + sel + '" class="chip' + (sel ? ' sel' : '') + (w.on ? '' : ' off') + '" data-i="' + i + '" title="' + esc(wallName(i)) + '">' +
+        (i + 1) + (isFilled(w) ? '<i class="dot"></i>' : '') + '</button></div>';
+    }).join('') + '<div class="chip-col"><span class="d"></span><button type="button" class="chip add" data-add="1" aria-label="벽체 추가">+</button></div>';
+    $('wall-count').textContent = wallName(state.sel) + ' · 전체 ' + state.walls.length + '개';
+  }
+
+  // ---------- 목록 ----------
+  var tbody = $('rows');
+  function renderRows() {
+    tbody.innerHTML = state.walls.map(function (w, i) {
+      var r = calc(w), cls = (i === state.sel ? 'sel' : '') + (w.on ? '' : ' off');
+      var dims = (r.L || r.H) ? (r.L ? fmt(r.L) : '–') + ' × ' + (r.H ? fmt(r.H) : '–') + (r.T ? ' × ' + fmt(r.T) : '') : '–';
+      var h = r.hTot != null ? r.a.label + ' ' + (r.face === 2 ? '양면' : '한면') + (r.n > 1 ? ' ×' + r.n : '') + ' <b class="ca">' + fmt(r.hTot) + '</b>' : (w.a ? esc(w.a) : '–');
+      var v = r.vTot != null ? r.b.label + ' ' + U_LABEL[w.u] + ' <b class="cb">' + fmt(r.vTot) + '</b>' : (w.b ? esc(w.b) : '–');
+      return '<tr data-i="' + i + '" class="' + cls + '">' +
+        '<td class="nm">' + esc(wallName(i)) + '</td><td>' + dims + '</td><td>' + h + '</td><td>' + v + '</td>' +
+        '<td class="tg"><button type="button" class="switch" role="switch" data-tg="' + i + '" aria-checked="' + w.on + '" aria-label="' + esc(wallName(i)) + ' 합계 포함"></button></td>' +
+        '<td class="del"><button type="button" data-del="' + i + '" aria-label="' + esc(wallName(i)) + ' 삭제" title="삭제">×</button></td></tr>';
+    }).join('');
+  }
+  tbody.addEventListener('click', function (e) {
+    var tg = e.target.closest('[data-tg]');
+    if (tg) { var i = +tg.dataset.tg; state.walls[i].on = !state.walls[i].on; refresh(); save(); return; }
+    var del = e.target.closest('[data-del]');
+    if (del) {
+      var j = +del.dataset.del;
+      if (state.walls.length > 1) state.walls.splice(j, 1); else state.walls[0] = blank();
+      if (state.sel >= state.walls.length) state.sel = state.walls.length - 1; else if (j < state.sel) state.sel--;
+      loadEditor(); refresh(); save(); return;
+    }
+    var tr = e.target.closest('tr'); if (tr) select(+tr.dataset.i);
+  });
+
+  // ---------- 도면 ----------
+  var uid = 0;
+  function drawSVG(w) {
+    var r = calc(w);
+    if (!r.L || !r.H) return '<div class="empty">길이와 높이를 입력하면 벽체 도면이 그려집니다.</div>';
+    uid++;
+    var VW = 900, EW = 560, EH = 380, ml = 110, mt = 34, gap = 70;
+    var sc = Math.min(EW / r.L, EH / r.H);
+    var wW = r.L * sc, wH = r.H * sc, x0 = ml, y0 = mt, x1 = x0 + wW, y1 = y0 + wH;
+    var aLen = Math.max(14, ANCHOR_LEN * sc), VH = Math.ceil(y1 + 100), out = [];
+    out.push('<svg class="draw" viewBox="0 0 ' + VW + ' ' + VH + '" role="img" aria-label="' + esc(w.name || '벽체') + ' 철근 배치도">');
+    out.push('<defs><pattern id="h' + uid + '" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="hatch" x1="0" y1="0" x2="0" y2="10"/></pattern></defs>');
+    out.push('<text class="lbl" x="' + x0 + '" y="' + (y0 - 14) + '">정면도</text>');
+    out.push('<rect class="wall" rx="2" x="' + x0 + '" y="' + y0 + '" width="' + wW.toFixed(1) + '" height="' + wH.toFixed(1) + '"/>');
+    out.push('<rect x="' + x0 + '" y="' + y0 + '" width="' + wW.toFixed(1) + '" height="' + wH.toFixed(1) + '" fill="url(#h' + uid + ')" opacity="0.7"/>');
+    if (r.a && r.hPer > 0) {
+      var sw = Math.max(1.8, r.a.d * sc * 1.6), emb = Math.min(aLen * 0.35, 8), tk = 3.2;
+      var ends = r.face === 2 ? [1, -1] : [1];
+      for (var k = 1; k <= r.hPer; k++) {
+        var y = y1 - k * r.a.s * sc;
+        ends.forEach(function (dir) {
+          var xe = dir === 1 ? x1 : x0, xs = xe - dir * emb, xo = xe + dir * aLen, xm = xe + dir * aLen * 0.55;
+          out.push('<path class="bar-a" stroke-width="' + sw.toFixed(2) + '" d="M' + xs.toFixed(1) + ' ' + y.toFixed(1) + ' H' + xo.toFixed(1) +
+            ' M' + (xm - tk).toFixed(1) + ' ' + (y - tk).toFixed(1) + ' L' + (xm + tk).toFixed(1) + ' ' + (y + tk).toFixed(1) + '"/>');
+        });
+      }
+      var ty = y1 - r.a.s * sc, xr = x1 + aLen + 8;
+      out.push('<text class="lbl-a" x="' + xr + '" y="' + (y0 + 14) + '">H ' + r.a.label + (r.n > 1 ? ' ×' + r.n : '') + '</text>');
+      out.push('<text class="lbl-a" x="' + xr + '" y="' + (y0 + 30) + '">L=' + ANCHOR_LEN + '</text>');
+      out.push('<path class="dim" d="M' + (xr - 4) + ' ' + y1 + ' H' + (xr + 4) + ' M' + (xr - 4) + ' ' + ty.toFixed(1) + ' H' + (xr + 4) + ' M' + xr + ' ' + y1 + ' V' + ty.toFixed(1) + '"/>');
+      out.push('<text class="dimtxt" x="' + (xr + 7) + '" y="' + ((y1 + ty) / 2 + 4).toFixed(1) + '">' + r.a.s + '</text>');
+    }
+    if (r.b && r.vPer > 0) {
+      var leg = Math.max(14, Math.min(500 * sc, 44)), foot = Math.max(2.5, Math.min(r.b.s * sc * 0.3, 5));
+      var swb = Math.max(1.8, r.b.d * sc * 1.6);
+      var spots = w.u === 'both' ? ['top', 'bot'] : [w.u === 'bot' ? 'bot' : 'top'];
+      for (var j = 1; j <= r.vPer; j++) {
+        var x = x0 + j * r.b.s * sc;
+        spots.forEach(function (p) {
+          var ye = p === 'top' ? y0 + 1.5 : y1 - 1.5, s = p === 'top' ? 1 : -1;
+          out.push('<path class="bar-b" stroke-width="' + swb.toFixed(2) + '" d="M' + x.toFixed(1) + ' ' + (ye + s * leg).toFixed(1) + ' V' + ye.toFixed(1) +
+            ' M' + (x - foot).toFixed(1) + ' ' + ye.toFixed(1) + ' H' + (x + foot).toFixed(1) + '"/>');
+        });
+      }
+      var bx = x0 + r.b.s * sc;
+      out.push('<text class="lbl-b" x="' + (x0 + wW / 2) + '" y="' + (y0 - 14) + '" text-anchor="middle">V ' + r.b.label + ' U바 (' + U_LABEL[w.u] + ')</text>');
+      out.push('<path class="dim" d="M' + x0 + ' ' + (y0 - 4) + ' V' + (y0 - 10) + ' M' + bx.toFixed(1) + ' ' + (y0 - 4) + ' V' + (y0 - 10) + ' M' + x0 + ' ' + (y0 - 7) + ' H' + bx.toFixed(1) + '"/>');
+    }
+    var dy = y1 + 22;
+    out.push('<path class="dim" d="M' + x0 + ' ' + (y1 + 6) + ' V' + (dy + 5) + ' M' + x1 + ' ' + (y1 + 6) + ' V' + (dy + 5) + ' M' + x0 + ' ' + dy + ' H' + x1 + '"/>');
+    out.push('<text class="dimtxt" x="' + (x0 + wW / 2) + '" y="' + (dy + 16) + '" text-anchor="middle">L = ' + fmt(r.L) + '</text>');
+    var dx = x0 - (r.face === 2 && r.a ? aLen + 22 : 26);
+    out.push('<path class="dim" d="M' + (x0 - 6) + ' ' + y0 + ' H' + (dx - 5) + ' M' + (x0 - 6) + ' ' + y1 + ' H' + (dx - 5) + ' M' + dx + ' ' + y0 + ' V' + y1 + '"/>');
+    out.push('<text class="dimtxt" transform="translate(' + (dx - 8) + ' ' + ((y0 + y1) / 2) + ') rotate(-90)" text-anchor="middle">H = ' + fmt(r.H) + '</text>');
+    var tW = Math.max(26, Math.min(r.Tv * sc, 90)), sx0 = Math.max(x1 + aLen + gap + 30, VW - 30 - tW), sx1 = sx0 + tW;
+    out.push('<text class="lbl" x="' + sx0 + '" y="' + (y0 - 14) + '">단부 측면</text>');
+    out.push('<rect class="wall" rx="2" x="' + sx0 + '" y="' + y0 + '" width="' + tW + '" height="' + wH.toFixed(1) + '"/>');
+    out.push('<rect x="' + sx0 + '" y="' + y0 + '" width="' + tW + '" height="' + wH.toFixed(1) + '" fill="url(#h' + uid + ')" opacity="0.7"/>');
+    if (r.a && r.hPer > 0) {
+      var rad = Math.max(1.9, Math.min(r.a.d * sc * 1.2, 3.6));
+      var dc = Math.min(8, tW / 4);
+      for (var k2 = 1; k2 <= r.hPer; k2++) {
+        for (var m = 0; m < r.n; m++) {
+          var cxd = r.n === 1 ? sx0 + tW / 2 : sx0 + dc + m * (tW - 2 * dc) / (r.n - 1);
+          out.push('<circle class="dot-a" cx="' + cxd.toFixed(1) + '" cy="' + (y1 - k2 * r.a.s * sc).toFixed(1) + '" r="' + rad.toFixed(2) + '"/>');
+        }
+      }
+    }
+    if (r.b && r.vPer > 0) {
+      var lg = Math.max(18, Math.min(300 * sc * 1.4, 40)), rr = 6, ul = sx0 + 5, ur = sx1 - 5;
+      var sps = w.u === 'both' ? ['top', 'bot'] : [w.u === 'bot' ? 'bot' : 'top'];
+      sps.forEach(function (p) {
+        var d;
+        if (p === 'top') { var yt = y0 + 5; d = 'M' + ul + ' ' + (yt + lg) + ' V' + (yt + rr) + ' Q' + ul + ' ' + yt + ' ' + (ul + rr) + ' ' + yt + ' H' + (ur - rr) + ' Q' + ur + ' ' + yt + ' ' + ur + ' ' + (yt + rr) + ' V' + (yt + lg); }
+        else { var yb = y1 - 5; d = 'M' + ul + ' ' + (yb - lg) + ' V' + (yb - rr) + ' Q' + ul + ' ' + yb + ' ' + (ul + rr) + ' ' + yb + ' H' + (ur - rr) + ' Q' + ur + ' ' + yb + ' ' + ur + ' ' + (yb - rr) + ' V' + (yb - lg); }
+        out.push('<path class="bar-b" stroke-width="2.4" d="' + d + '"/>');
+      });
+    }
+    out.push('<text class="dimtxt" x="' + (sx0 + tW / 2) + '" y="' + (y1 + 18) + '" text-anchor="middle">T=' + (r.T ? fmt(r.T) : '300(가정)') + '</text>');
+    out.push('<text class="dimtxt" x="' + (sx0 + tW / 2) + '" y="' + (y1 + 34) + '" text-anchor="middle">' + (r.face === 2 ? '양쪽 단부' : '한쪽 단부') + '</text>');
+    var ry = VH - 30;
+    if (r.hTot != null) out.push('<text class="lbl-a" x="' + x0 + '" y="' + ry + '">H ' + r.a.label + ' 앵커 : ' + r.hPer + 'ea × ' + r.face + '면' + (r.n > 1 ? ' × ' + r.n + '개' : '') + ' = ' + fmt(r.hTot) + 'ea</text>');
+    if (r.vTot != null) out.push('<text class="lbl-b" x="' + x0 + '" y="' + (ry + 17) + '">V ' + r.b.label + ' U바 : ' + r.vPer + 'ea × ' + r.umult + '개소 = ' + fmt(r.vTot) + 'ea</text>');
+    out.push('</svg>');
+    return out.join('');
+  }
+
+  // ---------- 갱신 ----------
+  function refresh() {
+    var w = state.walls[state.sel], r = calc(w);
+    fields.name.placeholder = 'W' + (state.sel + 1);
+    setSeg('seg-face', w.face === '1' ? '1' : '2');
+    setSeg('seg-u', w.u || 'top');
+    $('o-n').textContent = r.n;
+    $('step-n').querySelector('[data-d="-1"]').disabled = r.n <= 1;
+    $('step-n').querySelector('[data-d="1"]').disabled = r.n >= 9;
+    var pa = splitSpec(w.a), pb = splitSpec(w.b);
+    specs.a.box.classList.toggle('bad', !!(pa[0] && pa[1]) && !r.a);
+    specs.b.box.classList.toggle('bad', !!(pb[0] && pb[1]) && !r.b);
+
+    $('o-h').innerHTML = r.hTot != null ? fmt(r.hTot) + '<small>ea</small>' : '–';
+    $('o-h2').textContent = r.hTot != null ? r.hPer + ' × ' + r.face + '면' + (r.n > 1 ? ' × ' + r.n + '개' : '') : (!r.a ? '지름과 간격을 입력하세요' : '높이를 입력하세요');
+    $('o-v').innerHTML = r.vTot != null ? fmt(r.vTot) + '<small>ea</small>' : '–';
+    $('o-v2').textContent = r.vTot != null ? r.vPer + ' × ' + r.umult + '개소' : (!r.b ? '지름과 간격을 입력하세요' : '길이를 입력하세요');
+
+    var st;
+    if (!r.L || !r.H) st = '길이와 높이를 입력하면 개수와 도면이 바로 나옵니다.';
+    else if (r.hTot != null && r.vTot != null) st = '<b>' + esc(wallName(state.sel)) + '</b> 산정 완료 · H 앵커 <b>' + fmt(r.hTot) + 'ea</b> · V U바 <b>' + fmt(r.vTot) + 'ea</b>' + (w.on ? '' : ' (합계 제외)');
+    else st = '규격의 지름과 간격을 입력하세요. 예) D13@150, D16@200';
+    $('status').innerHTML = st;
+
+    var filled = state.walls.filter(isFilled).length, tot = state.walls.length, p = tot ? Math.round(filled / tot * 100) : 0;
+    $('fill').style.width = p + '%'; $('knob').style.left = p + '%';
+    $('pct').textContent = p + '%'; $('prog').setAttribute('aria-valuenow', p);
+    $('prog').setAttribute('aria-valuetext', filled + '/' + tot + ' 벽체 입력 완료');
+
+    renderChips(); renderRows();
+    $('draw-name').textContent = wallName(state.sel);
+    $('draw').innerHTML = drawSVG(w);
+    $('basis').innerHTML =
+      (r.hTot != null ? '<div class="a">H 앵커 : 올림(' + fmt(r.H) + ' ÷ ' + r.a.s + ') − 1 = ' + r.hPer + ' × ' + r.face + '면(' + (r.face === 2 ? '양쪽 단부' : '한쪽 단부') + ')' + (r.n > 1 ? ' × ' + r.n + '개(개소당)' : '') + ' = <b>' + fmt(r.hTot) + 'ea</b></div>' : '') +
+      (r.vTot != null ? '<div class="b">V U바 : 올림(' + fmt(r.L) + ' ÷ ' + r.b.s + ') − 1 = ' + r.vPer + ' × ' + r.umult + '개소(' + U_LABEL[w.u] + ') = <b>' + fmt(r.vTot) + 'ea</b></div>' : '');
+    renderSum();
+    $('all-box').hidden = !state.showAll;
+    $('btn-all').textContent = state.showAll ? '3D 닫기' : '3D 보기';
+    $('btn-all').classList.toggle('on', state.showAll);
+    Array.prototype.forEach.call($('seg-3d').querySelectorAll('[data-v]'), function (b) {
+      var on = b.dataset.v === state.mode3d; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+    });
+    if (state.showAll) view3d.update();
+  }
+  function renderSum() {
+    var by = {};
+    state.walls.forEach(function (w) {
+      if (!w.on) return;
+      var r = calc(w);
+      if (r.hTot != null) { by[r.a.d] = by[r.a.d] || { h: 0, v: 0 }; by[r.a.d].h += r.hTot; }
+      if (r.vTot != null) { by[r.b.d] = by[r.b.d] || { h: 0, v: 0 }; by[r.b.d].v += r.vTot; }
+    });
+    var ds = Object.keys(by).map(Number).sort(function (a, b) { return a - b; }), g = 0;
+    $('sum-body').innerHTML = ds.length ? ds.map(function (d) {
+      g += by[d].h + by[d].v;
+      return '<tr><td>D' + d + '</td><td class="a">' + (by[d].h ? fmt(by[d].h) : '–') + '</td><td class="b">' + (by[d].v ? fmt(by[d].v) : '–') + '</td><td>' + fmt(by[d].h + by[d].v) + '</td></tr>';
+    }).join('') : '<tr><td colspan="4" style="color:var(--ink-2)">합계에 포함된 벽체가 없습니다</td></tr>';
+    $('grand').textContent = fmt(g);
+  }
+
+  // ---------- 3D 보기 (Canvas 2D 원근 투영, 외부 라이브러리 없음) ----------
+  var view3d = (function () {
+    var cv = $('v3d-canvas'), ctx = cv.getContext('2d');
+    var FOV = 38 * Math.PI / 180, NEAR = 60;
+    var cam = { yaw: -0.62, pitch: 0.36, dist: 20000, t: { x: 0, y: 0, z: 0 } };
+    var prims = [], grid = [], labels = [], bbox = null, W = 0, Hh = 0, dpr = 1, f = 1, raf = 0;
+    var api = { needFit: true };
+    function css(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+    function rgb(hex) {
+      var h = hex.replace('#', ''); if (h.length === 3) h = h.replace(/./g, '$&$&');
+      var n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+    function resize() {
+      var r = cv.getBoundingClientRect(); if (!r.width) return;
+      dpr = Math.min(window.devicePixelRatio || 1, 2); W = r.width; Hh = r.height;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr);
+      f = Hh / (2 * Math.tan(FOV / 2)); schedule();
+    }
+    function proj(p) {
+      var x = p[0] - cam.t.x, y = p[1] - cam.t.y, z = p[2] - cam.t.z;
+      var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+      var x1 = x * cy - z * sy, z1 = x * sy + z * cy;
+      var y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp;
+      var zc = z2 + cam.dist;
+      return { x: W / 2 + x1 * f / zc, y: Hh / 2 - y2 * f / zc, z: zc };
+    }
+    function grow(b, x, y, z) {
+      b[0] = Math.min(b[0], x); b[1] = Math.max(b[1], x); b[2] = Math.min(b[2], y);
+      b[3] = Math.max(b[3], y); b[4] = Math.min(b[4], z); b[5] = Math.max(b[5], z);
+    }
+    var FACES = [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]];
+    var NORMS = [[0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0], [0, 1, 0], [0, -1, 0]];
+    function build() {
+      prims = []; grid = []; labels = [];
+      var b = [Infinity, -Infinity, Infinity, -Infinity, Infinity, -Infinity], any = false, cursor = 0;
+      var list = state.mode3d === 'sel' ? [state.sel] : state.walls.map(function (_, i) { return i; });
+      list.forEach(function (i) {
+        var w = state.walls[i], r = calc(w); if (!r.L || !r.H) return;
+        any = true;
+        var L = r.L, H = r.H, T = r.Tv, ax = r.a && r.hPer > 0 ? ANCHOR_LEN : 0;
+        var x0 = cursor + (r.face === 2 ? ax : 0), x1 = x0 + L, z0 = -T / 2, z1 = T / 2;
+        var P = [[x0, 0, z0], [x1, 0, z0], [x1, H, z0], [x0, H, z0], [x0, 0, z1], [x1, 0, z1], [x1, H, z1], [x0, H, z1]];
+        var isSel = i === state.sel && state.mode3d === 'all';
+        FACES.forEach(function (fc, k) { prims.push({ t: 'f', pts: fc.map(function (j) { return P[j]; }), n: NORMS[k], sel: isSel }); });
+        var c = Math.min(50, T / 4);
+        if (r.a && r.hPer > 0) {
+          var ends = r.face === 2 ? [1, -1] : [1];
+          for (var k = 1; k <= r.hPer; k++) {
+            var y = k * r.a.s;
+            ends.forEach(function (dir) {
+              var xe = dir === 1 ? x1 : x0, xm = xe + dir * ANCHOR_LEN * 0.55;
+              for (var m = 0; m < r.n; m++) {
+                var zz = r.n === 1 ? 0 : -(T / 2 - c) + m * (T - 2 * c) / (r.n - 1);
+                prims.push({ t: 'l', a: [xe - dir * 30, y, zz], b: [xe + dir * ANCHOR_LEN, y, zz], c: 'a', d: r.a.d });
+                prims.push({ t: 'l', a: [xm, y - 30, zz - 30], b: [xm, y + 30, zz + 30], c: 'a', d: r.a.d * 0.7 });
+              }
+            });
+          }
+        }
+        if (r.b && r.vPer > 0) {
+          var leg = Math.min(500, H * 0.4), zf = T / 2 - c;
+          var spots = w.u === 'both' ? ['top', 'bot'] : [w.u === 'bot' ? 'bot' : 'top'];
+          for (var j = 1; j <= r.vPer; j++) {
+            var x = x0 + j * r.b.s;
+            spots.forEach(function (p) {
+              var ye = p === 'bot' ? c : H - c, yl = p === 'bot' ? c + leg : H - c - leg;
+              prims.push({ t: 'l', a: [x, ye, -zf], b: [x, yl, -zf], c: 'b', d: r.b.d });
+              prims.push({ t: 'l', a: [x, ye, zf], b: [x, yl, zf], c: 'b', d: r.b.d });
+              prims.push({ t: 'l', a: [x, ye, -zf], b: [x, ye, zf], c: 'b', d: r.b.d });
+            });
+          }
+        }
+        labels.push({ p: [x0 + L / 2, H + Math.max(450, H * 0.14), 0], text: wallName(i), sub: fmt(L) + ' × ' + fmt(H) + ' × ' + (r.T ? fmt(r.T) : '300(가정)'), sel: i === state.sel });
+        grow(b, x0 - ax, 0, z0); grow(b, x1 + ax, H, z1);
+        cursor = x1 + ax + Math.max(1500, L * 0.12);
+      });
+      bbox = any ? b : null;
+      if (bbox) {
+        var ext = Math.max(bbox[1] - bbox[0], 4000), step = ext > 40000 ? 5000 : ext > 15000 ? 2000 : 1000;
+        var gx0 = Math.floor((bbox[0] - 1000) / step) * step, gx1 = Math.ceil((bbox[1] + 1000) / step) * step;
+        var gz0 = Math.floor((bbox[4] - 2000) / step) * step, gz1 = Math.ceil((bbox[5] + 2000) / step) * step;
+        for (var gx = gx0; gx <= gx1; gx += step) grid.push([[gx, 0, gz0], [gx, 0, gz1]]);
+        for (var gz = gz0; gz <= gz1; gz += step) grid.push([[gx0, 0, gz], [gx1, 0, gz]]);
+      }
+    }
+    function fit() {
+      if (!bbox) return;
+      cam.yaw = -0.62; cam.pitch = 0.36;
+      cam.t = { x: (bbox[0] + bbox[1]) / 2, y: (bbox[2] + bbox[3]) / 2, z: (bbox[4] + bbox[5]) / 2 };
+      var dx = bbox[1] - bbox[0], dy = bbox[3] - bbox[2], dz = bbox[5] - bbox[4];
+      var rad = 0.5 * Math.sqrt(dx * dx + dy * dy + dz * dz), asp = W && Hh ? Math.max(1, Hh / W * 1.4) : 1;
+      cam.dist = rad / Math.sin(FOV / 2) * 0.92 * asp;
+    }
+    function draw() {
+      raf = 0;
+      if (!W) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, Hh);
+      var ink = css('--ink'), ink2 = css('--ink-2'), clay = css('--clay'), ubar = css('--ubar'), hatch = css('--hatch');
+      var wc = rgb(css('--wall') || '#ece5dd');
+      if (!bbox) {
+        ctx.fillStyle = ink2; ctx.font = '14px ' + css('--font'); ctx.textAlign = 'center';
+        ctx.fillText('길이·높이가 입력된 벽체가 없습니다', W / 2, Hh / 2); return;
+      }
+      // 바닥 격자
+      ctx.strokeStyle = hatch; ctx.lineWidth = 1;
+      grid.forEach(function (g) {
+        var a = proj(g[0]), b = proj(g[1]); if (a.z < NEAR || b.z < NEAR) return;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      });
+      // 깊이 정렬 (먼 것부터)
+      var lx = 0.35, ly = 0.85, lz = -0.4, ln = Math.sqrt(lx * lx + ly * ly + lz * lz);
+      var items = [];
+      prims.forEach(function (p) {
+        if (p.t === 'f') {
+          var q = p.pts.map(proj); if (q.some(function (v) { return v.z < NEAR; })) return;
+          items.push({ p: p, q: q, z: (q[0].z + q[1].z + q[2].z + q[3].z) / 4 });
+        } else {
+          var a = proj(p.a), b = proj(p.b); if (a.z < NEAR || b.z < NEAR) return;
+          items.push({ p: p, q: [a, b], z: (a.z + b.z) / 2 - 1 });
+        }
+      });
+      items.sort(function (m, n) { return n.z - m.z; });
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      items.forEach(function (it) {
+        var p = it.p, q = it.q;
+        if (p.t === 'f') {
+          var sh = 0.82 + 0.22 * Math.max(0, (p.n[0] * lx + p.n[1] * ly + p.n[2] * lz) / ln);
+          ctx.fillStyle = 'rgba(' + Math.min(255, wc[0] * sh | 0) + ',' + Math.min(255, wc[1] * sh | 0) + ',' + Math.min(255, wc[2] * sh | 0) + ',0.5)';
+          ctx.beginPath(); ctx.moveTo(q[0].x, q[0].y);
+          for (var i = 1; i < q.length; i++) ctx.lineTo(q[i].x, q[i].y);
+          ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = p.sel ? clay : ink2; ctx.lineWidth = p.sel ? 1.6 : 0.9; ctx.stroke();
+        } else {
+          ctx.strokeStyle = p.c === 'a' ? clay : ubar;
+          ctx.lineWidth = Math.max(1.6, Math.min(p.d * 1.4 * f / it.z, 6));
+          ctx.beginPath(); ctx.moveTo(q[0].x, q[0].y); ctx.lineTo(q[1].x, q[1].y); ctx.stroke();
+        }
+      });
+      // 라벨
+      ctx.textAlign = 'center';
+      labels.forEach(function (lb) {
+        var s = proj(lb.p); if (s.z < NEAR) return;
+        ctx.fillStyle = lb.sel ? clay : ink; ctx.font = '600 13px ' + css('--font');
+        ctx.fillText(lb.text, s.x, s.y - 14);
+        ctx.fillStyle = ink2; ctx.font = '11px ' + css('--mono');
+        ctx.fillText(lb.sub, s.x, s.y);
+      });
+    }
+    function schedule() { if (!raf) raf = requestAnimationFrame(draw); }
+    api.update = function () {
+      if (!W) resize();
+      build();
+      if (api.needFit && W) { fit(); api.needFit = false; }
+      schedule();
+    };
+
+    // 조작: 드래그 회전, Shift/우클릭 이동, 휠·핀치 확대
+    var ptrs = {}, mode = null, pinch0 = 0;
+    function pan(dx, dy) {
+      var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+      var k = cam.dist / f;
+      cam.t.x += (-dx * cy + dy * -sp * sy) * k;
+      cam.t.y += (dy * cp) * k;
+      cam.t.z += (dx * sy + dy * -sp * cy) * k;
+    }
+    cv.addEventListener('pointerdown', function (e) {
+      cv.setPointerCapture(e.pointerId); ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+      var ids = Object.keys(ptrs);
+      if (ids.length === 2) { var a = ptrs[ids[0]], b = ptrs[ids[1]]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); mode = 'pinch'; }
+      else mode = (e.button === 2 || e.shiftKey) ? 'pan' : 'rot';
+    });
+    cv.addEventListener('pointermove', function (e) {
+      var p = ptrs[e.pointerId]; if (!p) return;
+      var dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+      if (mode === 'pinch') {
+        var ids = Object.keys(ptrs); if (ids.length < 2) return;
+        var a = ptrs[ids[0]], b = ptrs[ids[1]], d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinch0) cam.dist *= pinch0 / d; pinch0 = d;
+      } else if (mode === 'pan') pan(dx, dy);
+      else {
+        cam.yaw -= dx * 0.008;
+        cam.pitch = Math.max(-0.15, Math.min(1.5, cam.pitch + dy * 0.008));
+      }
+      schedule();
+    });
+    function up(e) { delete ptrs[e.pointerId]; if (!Object.keys(ptrs).length) mode = null; else if (mode === 'pinch') mode = 'rot'; }
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    cv.addEventListener('wheel', function (e) { e.preventDefault(); cam.dist *= Math.exp(e.deltaY * 0.0012); schedule(); }, { passive: false });
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener('resize', resize);
+    try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', schedule); } catch (e) {}
+    try { new MutationObserver(schedule).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
+    return api;
+  })();
+
+  // ---------- 버튼 ----------
+  $('add').addEventListener('click', addWall);
+  function toggleAll() {
+    state.showAll = !state.showAll; view3d.needFit = true; refresh(); save();
+    if (state.showAll) $('all-box').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  $('btn-all').addEventListener('click', toggleAll);
+  $('btn-all2').addEventListener('click', toggleAll);
+  $('seg-3d').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-v]'); if (!b) return;
+    state.mode3d = b.dataset.v; view3d.needFit = true; refresh(); save();
+  });
+  $('v3d-fit').addEventListener('click', function () { view3d.needFit = true; view3d.update(); });
+
+  function tsv() {
+    var lines = [['No', '위치', '길이(mm)', '높이(mm)', '두께(mm)', 'H 규격', '배근', '개소당 앵커(ea)', 'H 개수(ea)', 'V 규격', 'U바 위치', 'V 개수(ea)', 'H 산출근거', 'V 산출근거'].join('\t')];
+    state.walls.forEach(function (w, i) {
+      if (!w.on) return;
+      var r = calc(w);
+      if (!r.L && !r.H && !w.a && !w.b) return;
+      lines.push([i + 1, wallName(i), r.L || '', r.H || '', r.T || '', r.a ? r.a.label : w.a, r.face === 2 ? '양면' : '한면', r.n,
+        r.hTot != null ? r.hTot : '', r.b ? r.b.label : w.b, U_LABEL[w.u] || '', r.vTot != null ? r.vTot : '',
+        r.hTot != null ? '올림(' + r.H + '/' + r.a.s + ')-1=' + r.hPer + '×' + r.face + '×' + r.n : '',
+        r.vTot != null ? '올림(' + r.L + '/' + r.b.s + ')-1=' + r.vPer + '×' + r.umult : ''].join('\t'));
+    });
+    return lines.join('\n');
+  }
+  $('btn-copy').addEventListener('click', function () {
+    var text = tsv(), msg = $('copy-msg'), fb = $('copy-fallback');
+    function fallback() {
+      fb.innerHTML = '<textarea class="copybox" id="copybox" readonly></textarea>';
+      var ta = $('copybox'); ta.value = text; ta.focus(); ta.select();
+      msg.textContent = '자동 복사가 막혀 있습니다. 합계 카드의 선택된 내용을 Ctrl+C로 복사하세요.';
+    }
+    try { navigator.clipboard.writeText(text).then(function () { fb.innerHTML = ''; msg.textContent = '복사했습니다. 엑셀 셀에 붙여넣으세요.'; }, fallback); }
+    catch (e) { fallback(); }
+  });
+
+  var rz = $('reset-zone');
+  function resetIdle() {
+    rz.innerHTML = '<button type="button" class="pill sm danger" id="btn-reset">전체 초기화</button>';
+    $('btn-reset').addEventListener('click', resetAsk);
+  }
+  function resetAsk() {
+    rz.innerHTML = '<span class="confirm">모두 지울까요? <button type="button" class="pill sm on" id="rs-y">지우기</button><button type="button" class="pill sm" id="rs-n">취소</button></span>';
+    $('rs-y').addEventListener('click', function () {
+      state.walls = []; while (state.walls.length < MIN_ROWS) state.walls.push(blank());
+      state.sel = 0; loadEditor(); refresh(); save(); resetIdle();
+    });
+    $('rs-n').addEventListener('click', resetIdle);
+  }
+  resetIdle();
+
+  loadEditor();
+  refresh();
+})();
+</script>
+
+</body>
+</html>
