@@ -2,60 +2,281 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>공무 도구 by유재성</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio · 유재성</title>
+<meta name="description" content="유재성 인테리어·건축 포트폴리오">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #f4efe9; --card: #f7f3ee; --ink: #2f2d2b; --ink-2: #7a726b; --clay: #c4553a; --clay-ink: #fff8f3;
-  --sh-dark: rgba(166,146,128,.38); --sh-light: rgba(255,255,255,.95);
-  --font: "IBM Plex Sans KR", "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #23201e; --card: #262321; --ink: #efe8e1; --ink-2: #aaa098; --clay: #e0704f; --clay-ink: #2a1610;
-    --sh-dark: rgba(0,0,0,.5); --sh-light: rgba(255,255,255,.045); color-scheme: dark; }
-}
-* { box-sizing: border-box; }
-html, body { background: var(--bg); color: var(--ink); }
-body { margin: 0; font-family: var(--font); font-size: 15px; line-height: 1.55; }
-.wrap { max-width: 820px; margin: 0 auto; padding: 48px max(16px, env(safe-area-inset-right, 0px)) 60px max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 28px; }
-h1 { margin: 0; font-size: clamp(30px, 6vw, 44px); font-weight: 500; letter-spacing: .08em; }
-h1 .sl { color: var(--clay); font-weight: 400; margin: 0 .12em; }
-.tagline { font-size: 12px; letter-spacing: .26em; text-transform: uppercase; color: var(--ink-2); margin-top: 8px; }
-.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
-@media (max-width: 620px) { .tiles { grid-template-columns: minmax(0, 1fr); } }
-a.tile { display: flex; align-items: center; gap: 20px; padding: 24px; border-radius: 18px; background: var(--card); color: inherit; text-decoration: none;
-  box-shadow: 7px 7px 16px var(--sh-dark), -7px -7px 16px var(--sh-light); transition: transform .12s; }
-a.tile:hover { transform: translateY(-2px); }
-a.tile:active { transform: none; box-shadow: inset 4px 4px 10px var(--sh-dark), inset -4px -4px 10px var(--sh-light); }
-a.tile:focus-visible { outline: 2px solid var(--clay); outline-offset: 4px; }
-.ic { width: 64px; height: 64px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--clay); color: var(--clay-ink);
-  box-shadow: 4px 4px 10px var(--sh-dark), -4px -4px 10px var(--sh-light); }
-.ic svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.t { font-size: 18px; font-weight: 500; }
-.d { font-size: 13px; color: var(--ink-2); }
-footer { font-size: 12px; color: var(--ink-2); }
+  :root {
+    --ink: #1C1C1C;
+    --mute: #767676;
+    --line: #E2E1DD;
+    --bg: #FFFFFF;
+    --dark: #131313;
+    --dark-ink: #EDEBE6;
+    --dark-mute: #8F8D88;
+    --gap: 16px;
+    --side: clamp(16px, 5vw, 96px);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 16px/1.5 'Inter', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; width: 100%; height: 100%; object-fit: cover; background: #F3F3F1; cursor: zoom-in; }
+  img.fit { object-fit: contain; background: transparent; }
+
+  /* three sizes only */
+  .xl { font-size: clamp(48px, 8vw, 112px); font-weight: 300; line-height: 1.02; letter-spacing: -0.03em; margin: 0; }
+  .md { font-size: clamp(22px, 2.4vw, 32px); font-weight: 400; line-height: 1.2; letter-spacing: -0.01em; margin: 0; }
+  .sm { font-size: 14px; color: var(--mute); margin: 0; }
+  .b { font-weight: 600; color: var(--ink); }
+
+  /* top bar */
+  .bar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px var(--side);
+    background: rgba(255,255,255,.9); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar nav { display: flex; gap: 20px; }
+  .bar a { font-size: 14px; color: var(--mute); }
+  .bar a:hover, .bar .home { color: var(--ink); }
+
+  /* hero */
+  .hero { padding: clamp(64px, 12vw, 160px) var(--side) clamp(48px, 8vw, 96px); display: grid; gap: 40px; }
+  .hero-imgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap); }
+  .hero-imgs img { aspect-ratio: 3 / 4; }
+
+  /* sections */
+  .chapter { padding: clamp(56px, 9vw, 120px) var(--side) 24px; display: flex; align-items: baseline; gap: 20px; border-top: 1px solid var(--line); }
+  .chapter .xl { font-size: clamp(40px, 6vw, 80px); }
+  .project { padding: 24px var(--side) clamp(48px, 7vw, 88px); display: grid; gap: var(--gap); }
+  .cap { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; padding-top: 8px; }
+
+  .dark { background: var(--dark); color: var(--dark-ink); }
+  .dark .sm { color: var(--dark-mute); }
+  .dark .b { color: var(--dark-ink); }
+  .dark img { background: #1E1E1E; }
+
+  .g { display: grid; gap: var(--gap); }
+  .c2 { grid-template-columns: 1fr 1fr; }
+  .c3 { grid-template-columns: repeat(3, 1fr); }
+  .c4 { grid-template-columns: repeat(4, 1fr); }
+  .main-side { grid-template-columns: 3fr 1fr; }
+  .main-side2 { grid-template-columns: 2fr 1fr; }
+  .keep2 { grid-template-columns: 2fr 1fr; }
+  .c5 { grid-template-columns: repeat(5, 1fr); }
+  .stack { display: grid; gap: var(--gap); align-content: start; }
+
+  .r-portrait img { aspect-ratio: 2 / 3; }
+  .r-sq img { aspect-ratio: 1 / 1; }
+  .r-wide { aspect-ratio: 1.42; }
+  .r-grid { aspect-ratio: 1.8; }
+  .r-page { aspect-ratio: 1.55; }
+
+  footer { padding: 64px var(--side) 48px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+  /* lightbox */
+  .lb { position: fixed; inset: 0; background: rgba(10,10,10,.94); display: none; align-items: center; justify-content: center; z-index: 50; padding: 24px; cursor: zoom-out; }
+  .lb.on { display: flex; }
+  .lb img { width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; background: transparent; cursor: zoom-out; }
+
+  @media (max-width: 760px) {
+    :root { --gap: 10px; }
+    .bar nav { gap: 12px; }
+    .hero-imgs { grid-template-columns: 1fr 1fr; }
+    .hero-imgs img:nth-child(3) { display: none; }
+    .c2, .main-side, .main-side2 { grid-template-columns: 1fr; }
+    .c4 { grid-template-columns: 1fr 1fr; }
+    .main-side .stack, .main-side2 .stack { grid-template-columns: 1fr 1fr; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>공무<span class="sl">/</span>도구</h1>
-    <div class="tagline">Site office tools · by유재성</div>
-  </header>
-  <nav class="tiles">
-    <a class="tile" href="/rebar/">
-      <span class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1"/><path d="M8 5v4M12 5v4M16 5v4M20 9h2M20 13h2M20 17h2"/></svg></span>
-      <span><span class="t">벽체 철근 개수 산정</span><br><span class="d">H 앵커 · V U바 개수와 배치도, 3D 보기</span></span>
-    </a>
-    <a class="tile" href="/eps2png/">
-      <span class="ic"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/></svg></span>
-      <span><span class="t">EPS·PDF 투명 PNG 변환기</span><br><span class="d">AutoCAD EPS·PDF를 투명 PNG로 변환</span></span>
-    </a>
+
+<header class="bar">
+  <a class="sm home" href="../">← 공무/도구</a>
+  <nav>
+    <a href="#interior">Interior</a>
+    <a href="#plant">Plant</a>
+    <a href="#academic">Academic</a>
   </nav>
-  <footer>입력값과 파일은 모두 각자의 브라우저 안에서만 처리되고 서버로 전송되지 않습니다.</footer>
-</div>
+</header>
+
+<section class="hero">
+  <div>
+    <p class="sm" style="margin-bottom:12px">Portfolio</p>
+    <h1 class="xl">Interior &amp;<br>Architecture</h1>
+  </div>
+  <div class="hero-imgs">
+    <img src="img/mars-3.jpg" alt="Mars Roasters 매장 내부">
+    <img src="img/hb-r1.jpg" alt="Hanbok Nara 렌더">
+    <img src="img/skunk-r2.jpg" alt="Skunk Works 렌더">
+  </div>
+  <div class="cap"><p class="sm b">유재성</p><p class="sm">Jaeseong Yoo</p></div>
+</section>
+
+<!-- 01 INTERIOR -->
+<div class="chapter" id="interior"><p class="xl">01</p><p class="md">Interior</p></div>
+
+<section class="dark">
+  <div class="project">
+    <div class="g c3 r-portrait">
+      <img src="img/mars-1.jpg" alt="Mars Roasters 창가 바 테이블">
+      <img src="img/mars-3.jpg" alt="Mars Roasters 중앙 오브제와 바">
+      <img src="img/mars-5.jpg" alt="Mars Roasters 좌석 공간">
+    </div>
+    <div class="g keep2">
+      <img src="img/mars-w.jpg" alt="Mars Roasters 석재 바 카운터" style="aspect-ratio:1.42">
+      <img src="img/mars-2.jpg" alt="Mars Roasters 바 좌석" style="aspect-ratio:0.71">
+    </div>
+    <div class="g c5 r-sq">
+      <img src="img/mars-s1.jpg" alt="Mars 사인">
+      <img src="img/mars-s2.jpg" alt="Mars 입구 야경">
+      <img src="img/mars-s3.jpg" alt="Mars 외관">
+      <img src="img/mars-s4.jpg" alt="Mars 외부 조명">
+      <img src="img/mars-6.jpg" alt="Mars Roasters 식물 오브제 테이블">
+    </div>
+    <div class="cap"><p class="sm b">Mars Roasters</p><p class="sm">Cafe · 150㎡ · Ulsan · Design director</p></div>
+  </div>
+</section>
+
+<section class="project">
+  <div class="g c2">
+    <img class="r-wide" src="img/skunk-r1.jpg" alt="Skunk Works 창가 좌석 렌더">
+    <img class="r-wide" src="img/skunk-r2.jpg" alt="Skunk Works 라운지 렌더">
+  </div>
+  <div class="g main-side">
+    <img class="r-grid" src="img/skunk-grid.jpg" alt="Skunk Works 준공 사진 모음">
+    <div class="stack r-portrait">
+      <img src="img/skunk-m1.jpg" alt="Skunk Works 커피 머신" style="aspect-ratio:4/5">
+      <img src="img/skunk-m2.jpg" alt="Skunk Works 커피" style="aspect-ratio:4/5">
+    </div>
+  </div>
+  <div class="cap"><p class="sm b">Skunk Works</p><p class="sm">Cafe · 660㎡ · Ulsan</p></div>
+</section>
+
+<section class="project">
+  <div class="g c2">
+    <img class="r-wide" src="img/hb-r1.jpg" alt="Hanbok Nara 전시 공간 렌더">
+    <img class="r-wide" src="img/hb-r2.jpg" alt="Hanbok Nara 상담 카운터 렌더">
+  </div>
+  <div class="g main-side2">
+    <img src="img/hb-grid.jpg" alt="Hanbok Nara 준공 사진 모음" style="aspect-ratio:1.54">
+    <div class="stack">
+      <img class="r-wide" src="img/hb-arch.jpg" alt="Hanbok Nara 아치 피팅룸 렌더">
+      <img class="fit r-wide" src="img/hb-iso.jpg" alt="Hanbok Nara 평면 아이소메트릭">
+    </div>
+  </div>
+  <div class="cap"><p class="sm b">Hanbok Nara</p><p class="sm">Hanbok store · 198㎡ · Ulsan · Design director</p></div>
+</section>
+
+<!-- 02 PLANT -->
+<div class="chapter" id="plant"><p class="xl">02</p><p class="md">Plant · Architecture</p></div>
+
+<section class="project">
+  <div class="g main-side">
+    <img src="img/h3c-1.jpg" alt="H3 공장 직원 식당 렌더" style="aspect-ratio:1.65">
+    <div class="stack"><img src="img/h3c-2.jpg" alt="H3 식당 복도 렌더" style="aspect-ratio:2"></div>
+  </div>
+  <div class="cap"><p class="sm b">H3 Canteen</p><p class="sm">Plant interior · Haiphong, Vietnam</p></div>
+</section>
+
+<section class="project">
+  <img class="r-wide" src="img/lg-1.jpg" alt="LG전자 창원 통합시험동 조감도">
+  <div class="cap"><p class="sm b">LG Electronics Integrated Laboratory</p><p class="sm">Plant · Changwon · Planning, Elevation, Approval</p></div>
+</section>
+
+<section class="project">
+  <div class="g main-side2">
+    <img class="r-wide" src="img/h3-1.jpg" alt="LG디스플레이 하이퐁 H3 공장 조감도">
+    <div class="stack">
+      <img src="img/h3-2.jpg" alt="H3 공장 외관 투시도" style="aspect-ratio:1.69">
+      <img src="img/h3-3.jpg" alt="H3 공장 측면 외관 투시도" style="aspect-ratio:1.69">
+    </div>
+  </div>
+  <div class="cap"><p class="sm b">H3 Project</p><p class="sm">Plant · Haiphong, Vietnam · Planning, Elevation, Approval</p></div>
+</section>
+
+<!-- 03 ACADEMIC -->
+<div class="chapter" id="academic"><p class="xl">03</p><p class="md">Academic</p></div>
+
+<section class="project">
+  <img class="fit r-page" src="img/ac-05.jpg" alt="Transparency 미술관 외관 투시도">
+  <div class="g c2">
+    <img class="fit r-page" src="img/ac-04.jpg" alt="Transparency 모형과 동선 다이어그램">
+    <img class="fit r-page" src="img/ac-07.jpg" alt="Transparency 내부 투시도">
+  </div>
+  <div class="cap"><p class="sm b">Transparency</p><p class="sm">Art museum · Special prize</p></div>
+</section>
+
+<section class="project">
+  <img class="fit r-page" src="img/ac-09.jpg" alt="The Continuous Moment 야간 조감도">
+  <div class="g c2">
+    <img class="fit r-page" src="img/ac-10.jpg" alt="The Continuous Moment 시간 분포 다이어그램">
+    <img class="fit r-page" src="img/ac-12.jpg" alt="The Continuous Moment 프로그램 구성과 모형">
+  </div>
+  <div class="cap"><p class="sm b">The Continuous Moment</p><p class="sm">Urban design · Graduation project</p></div>
+</section>
+
+<section class="project">
+  <img class="fit" src="img/ac-14.jpg" alt="Experiencing Platform 내부 투시도" style="aspect-ratio:1.73">
+  <div class="g c2">
+    <img class="fit r-page" src="img/ac-13.jpg" alt="Experiencing Platform 다이어그램">
+    <img class="fit r-page" src="img/ac-16.jpg" alt="Experiencing Platform 평면과 단면">
+  </div>
+  <div class="cap"><p class="sm b">Experiencing Platform</p><p class="sm">Community facility</p></div>
+</section>
+
+<section class="project">
+  <img class="fit r-page" src="img/ac-18.jpg" alt="Connecting School 패턴 입면 실내 투시도">
+  <div class="g main-side2">
+    <img class="fit r-page" src="img/ac-17.jpg" alt="Connecting School 패턴 스터디">
+    <img class="fit" src="img/ac-19.jpg" alt="Connecting School 모듈 목업" style="aspect-ratio:0.89">
+  </div>
+  <div class="cap"><p class="sm b">Connecting School</p><p class="sm">Facade design · Grasshopper</p></div>
+</section>
+
+<section class="project">
+  <img class="fit r-page" src="img/ac-20.jpg" alt="Casa de Todos 골목 셸터 드로잉">
+  <div class="cap"><p class="sm b">Casa de Todos</p><p class="sm">Shelter · International competition</p></div>
+</section>
+
+<section class="project">
+  <img class="fit" src="img/ac-28.jpg" alt="Undefined park와 한글 점형 블록 공모전" style="aspect-ratio:1.46">
+  <div class="cap"><p class="sm b">Competition Works</p><p class="sm">Undefined park · Hangeul tactile paving</p></div>
+</section>
+
+<section class="project">
+  <img class="fit r-page" src="img/ac-21.jpg" alt="Maker Faire, 제작 워크숍, VR 캠퍼스 작업">
+  <div class="cap"><p class="sm b">Extra Work</p><p class="sm">Maker Faire Seoul · Techcapsule · KMU VR Campus</p></div>
+</section>
+
+<footer>
+  <p class="md">Thank you</p>
+  <div class="cap"><p class="sm b">유재성</p><p class="sm">[연락처 · 이메일]</p></div>
+</footer>
+
+<div class="lb" id="lb" aria-hidden="true"><img alt=""></div>
+<script>
+  (function () {
+    var lb = document.getElementById('lb'), big = lb.querySelector('img');
+    document.querySelectorAll('main img, section img').forEach(function (im) {
+      im.loading = 'lazy';
+      im.addEventListener('click', function () { big.src = im.src; big.alt = im.alt; lb.classList.add('on'); });
+    });
+    lb.addEventListener('click', function () { lb.classList.remove('on'); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lb.classList.remove('on'); });
+  })();
+</script>
 </body>
 </html>
