@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jamie's workspace by유재성</title>
+<title>Jamie’s workspace by 유재성</title>
 <meta name="description" content="현장 사무실용 도구와 인테리어·건축 포트폴리오 · 유재성">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,20 +83,52 @@
 
   .note { position: absolute; z-index: 4; left: var(--side); bottom: clamp(28px, 6vh, 56px); font-size: 12px; color: rgba(255,255,255,.55); max-width: 40vw; }
 
-  @media (max-width: 860px) {
-    .links { gap: 16px; font-size: 12px; }
-    .links .hide-m { display: none; }
+  /* ---------- PHONE (portrait) and short landscape screens ----------
+     Everything stacks top-to-bottom in normal flow, so nothing can overlap. */
+  @media (max-width: 860px), (max-height: 540px) {
+    :root { --side: 20px; }
+    .stage { height: auto; min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; padding-bottom: 24px; }
+    .nav, .copy, .cards, .ctrl { position: relative; inset: auto; left: auto; right: auto; top: auto; bottom: auto; transform: none; z-index: 4; }
+    .nav { padding: 16px var(--side); }
+    .logo { white-space: nowrap; font-size: 14px; gap: 8px; }
+    .logo i { width: 18px; height: 18px; }
     .logo small { display: none; }
-    .copy { top: 22%; transform: none; width: auto; right: var(--side); }
-    .title { font-size: clamp(40px, 12vw, 64px); }
-    .desc { margin-bottom: 20px; }
-    .cards { left: 0; top: auto; bottom: 120px; transform: none; padding: 0 var(--side); gap: 12px; overflow-x: auto; scrollbar-width: none; }
+    .links { gap: 14px; font-size: 11px; white-space: nowrap; }
+    .links .hide-m { display: none; }
+
+    .copy { width: auto; margin-top: auto; padding: 24px var(--side) 0; }
+    .eyebrow { font-size: 13px; }
+    .eyebrow::before { width: 20px; }
+    .title { font-size: clamp(36px, 11vw, 56px); margin: 10px 0 10px; }
+    .desc { font-size: 14px; margin-bottom: 18px; }
+    .go, .open { height: 42px; }
+    .go { width: 42px; }
+
+    .cards { margin-top: 28px; padding: 4px var(--side) 8px; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
     .cards::-webkit-scrollbar { display: none; }
-    .card { width: 128px; border-radius: 12px; }
-    .card b { font-size: 15px; }
-    .ctrl { left: var(--side); padding: 0; bottom: 40px; }
+    .card { width: 30vw; max-width: 140px; min-width: 104px; aspect-ratio: 3 / 4; border-radius: 12px; scroll-snap-align: start; }
+    .card:hover { transform: none; }
+    .card span { left: 10px; right: 10px; bottom: 10px; }
+    .card em { font-size: 10px; }
+    .card b { font-size: 14px; }
+
+    .ctrl { padding: 18px var(--side) 0; gap: 10px; }
+    .arrow { width: 40px; height: 40px; }
+    .num { font-size: 30px; min-width: 44px; }
     .note { display: none; }
-    .shade { background: linear-gradient(180deg, rgba(12,12,12,.55) 0%, rgba(12,12,12,.75) 55%, rgba(12,12,12,.9) 100%); }
+    .shade { background: linear-gradient(180deg, rgba(12,12,12,.55) 0%, rgba(12,12,12,.72) 45%, rgba(12,12,12,.92) 100%); }
+  }
+
+  /* phone turned sideways: copy left, cards right */
+  @media (max-height: 540px) and (min-width: 600px) {
+    .stage { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr auto; column-gap: 8px; }
+    .nav { grid-column: 1 / -1; }
+    .copy { grid-column: 1; grid-row: 2; align-self: center; margin: 0; padding-top: 0; }
+    .title { font-size: 40px; }
+    .desc { margin-bottom: 12px; }
+    .cards { grid-column: 2; grid-row: 2; align-self: center; margin: 0; padding-left: 0; }
+    .card { width: 104px; min-width: 0; }
+    .ctrl { grid-column: 1 / -1; grid-row: 3; padding-top: 8px; }
   }
 </style>
 </head>
@@ -108,7 +140,7 @@
   <div class="shade"></div>
 
   <header class="nav">
-    <a class="logo" href="/"><i></i>Jamie's workspace <small>by 유재성</small></a>
+    <a class="logo" href="/"><i></i>Jamie’s workspace <small>by 유재성</small></a>
     <nav class="links">
       <a class="cur" href="/">HOME</a>
       <a href="/portfolio/">PORTFOLIO</a>
