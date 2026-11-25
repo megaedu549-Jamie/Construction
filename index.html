@@ -1,231 +1,338 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jamie’s workspace by 유재성</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Jamie's workspace by 유재성</title>
 <meta name="description" content="현장 사무실용 도구와 인테리어·건축 포트폴리오 · 유재성">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500&display=swap">
 <style>
-  :root {
-    --accent: #C9432C;
-    --paper: #F4F1EC;
-    --ink: #FFFFFF;
-    --mute: rgba(255,255,255,.72);
-    --side: clamp(20px, 5vw, 72px);
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; }
-  body {
-    background: #141414; color: var(--ink);
-    font: 400 15px/1.5 'Inter', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased; overflow-x: hidden;
-  }
-  a { color: inherit; text-decoration: none; }
-  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+/* layout: quiet single-column portfolio — sticky bar with the flipping avatar, a giant serif title, label/value info columns, then each project as a chapter (title, meta, images) and a big "Thank you" close */
+:root{
+  --bg:#ecece8; --fg:#121212; --muted:#6e6e69; --line:#cfcfc9; --soft:#e2e2dd; --accent:#121212;
+  --serif:"Instrument Serif","Times New Roman",serif;
+  --sans:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif;
+  --kr:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans),var(--kr);font-size:15px;line-height:1.55;word-break:keep-all;overflow-wrap:break-word;
+  -webkit-font-smoothing:antialiased}
+a{color:inherit}
+img{max-width:100%;display:block}
+.gut{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.lab{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.kr{font-family:var(--kr)}
 
-  .stage { position: relative; height: 100vh; height: 100svh; min-height: 620px; overflow: hidden; }
+/* ---------- top bar ---------- */
+.bar{position:sticky;top:0;z-index:30;background:var(--bg);display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:28px;
+  padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:14px;border-bottom:1px solid transparent;transition:border-color .3s}
+.bar.scrolled{border-bottom-color:var(--line)}
+.me{display:flex;align-items:center;gap:14px;text-decoration:none}
+.who{display:flex;flex-direction:column;line-height:1.25}
+.who b{font-weight:600;font-size:15px}
+.who span{font-size:12px;color:var(--muted)}
+.status{display:flex;gap:18px;font-size:13px;color:var(--muted);white-space:nowrap}
+.status b{color:var(--fg);font-weight:500}
+.pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:#2fa65a;margin-right:7px;vertical-align:1px;animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.menu{display:flex;gap:22px;font-size:13px;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.menu a{text-decoration:none;position:relative}
+.menu a::after{content:"";position:absolute;left:0;right:100%;bottom:-3px;height:1px;background:currentColor;transition:right .3s}
+.menu a:hover::after{right:0}
+.mail{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25;background:none;border:0;padding:0;cursor:pointer;font:inherit;color:inherit;text-align:right}
+.mail span{font-size:12px;color:var(--muted)}
+.mail b{font-weight:500;font-size:14px}
 
-  /* background layers */
-  .bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transform: scale(1.06); transition: opacity .9s ease, transform 6s ease; }
-  .bg.on { opacity: 1; transform: scale(1); }
-  .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(12,12,12,.86) 0%, rgba(12,12,12,.55) 45%, rgba(12,12,12,.15) 100%), linear-gradient(0deg, rgba(12,12,12,.7) 0%, rgba(12,12,12,0) 40%); }
+/* ---------- avatar: spinning name ring + coin flip between the two portraits ---------- */
+.avatar{position:relative;width:76px;height:76px;flex:none;cursor:pointer;border:0;background:none;padding:0}
+.ring{position:absolute;inset:0;animation:spin 14s linear infinite}
+.ring text{font:500 8.6px var(--sans);letter-spacing:1.6px;text-transform:uppercase;fill:var(--fg)}
+.coin-wrap{position:absolute;inset:13px;perspective:500px}
+.coin{position:absolute;inset:0;transform-style:preserve-3d;animation:flip 7s cubic-bezier(.75,0,.25,1) infinite}
+.face{position:absolute;inset:0;border-radius:50%;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#fff;box-shadow:0 0 0 1px var(--fg)}
+.face img{width:100%;height:100%;object-fit:cover}
+.face.back{transform:rotateY(180deg)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes flip{0%,38%{transform:rotateY(0)}50%,88%{transform:rotateY(180deg)}100%{transform:rotateY(360deg)}}
+.avatar:hover .coin{animation-duration:3.5s}
 
-  /* nav */
-  .nav { position: absolute; top: 0; left: 0; right: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; padding: 24px var(--side); }
-  .logo { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: .02em; }
-  .logo i { width: 22px; height: 22px; border: 2px solid #fff; border-radius: 50%; display: inline-block; position: relative; }
-  .logo i::after { content: ''; position: absolute; left: 50%; top: 2px; bottom: 2px; width: 2px; background: #fff; transform: translateX(-50%) rotate(30deg); }
-  .logo small { font-weight: 400; color: var(--mute); margin-left: 4px; }
-  .links { display: flex; gap: 28px; font-size: 13px; letter-spacing: .06em; }
-  .links a { color: var(--mute); padding-bottom: 6px; border-bottom: 2px solid transparent; }
-  .links a:hover { color: #fff; }
-  .links a.cur { color: #fff; border-color: var(--accent); }
+/* ---------- hero ---------- */
+.hero{padding-block:9vh 5vh;display:flex;flex-direction:column;gap:28px}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(64px,14.5vw,230px);line-height:.86;letter-spacing:-.02em;margin:0}
+h1 i{font-style:italic}
+.hero-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.scroll{display:flex;align-items:center;gap:10px;font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+.scroll i{display:block;width:1px;height:34px;background:var(--fg);transform-origin:top;animation:drop 1.8s infinite}
+@keyframes drop{0%{transform:scaleY(0)}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
 
-  /* left copy */
-  .copy { position: absolute; z-index: 4; left: var(--side); top: 50%; transform: translateY(-46%); width: min(560px, 44vw); }
-  .eyebrow { display: flex; align-items: center; gap: 12px; color: var(--mute); font-size: 14px; }
-  .eyebrow::before { content: ''; width: 28px; height: 2px; background: #fff; }
-  .title { font-family: 'Oswald', 'Noto Sans KR', sans-serif; font-weight: 600; text-transform: uppercase; font-size: clamp(48px, 7vw, 104px); line-height: .98; letter-spacing: .005em; margin: 14px 0 18px; word-break: keep-all; }
-  .desc { color: var(--mute); max-width: 420px; margin: 0 0 28px; }
-  .ctas { display: flex; align-items: center; gap: 14px; }
-  .go { width: 46px; height: 46px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; transition: transform .2s; }
-  .go:hover { transform: scale(1.08); }
-  .go svg { width: 18px; height: 18px; }
-  .open { height: 46px; padding: 0 24px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px; display: inline-flex; align-items: center; font-size: 13px; letter-spacing: .08em; }
-  .open:hover { background: #fff; color: #141414; }
-  .swap .eyebrow, .swap .title, .swap .desc, .swap .ctas { animation: up .7s cubic-bezier(.2,.7,.2,1) both; }
-  .swap .title { animation-delay: .06s; } .swap .desc { animation-delay: .12s; } .swap .ctas { animation-delay: .18s; }
-  @keyframes up { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+/* ---------- info columns ---------- */
+.info{display:grid;grid-template-columns:1.5fr 1fr 1fr 1.2fr;gap:28px;padding-block:28px 56px;border-top:1px solid var(--line)}
+.info>div{display:flex;flex-direction:column;gap:8px;min-width:0}
+.info h3{margin:0;font-size:15px;font-weight:600}
+.info p{margin:0;font-family:var(--kr);color:var(--fg);max-width:40ch}
+.info ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px}
+.info li span{color:var(--muted)}
 
-  /* cards */
-  .cards { position: absolute; z-index: 4; left: 50%; right: 0; top: 50%; transform: translateY(-40%); display: flex; gap: 20px; padding-left: 20px; }
-  .card { position: relative; flex: 0 0 auto; width: clamp(150px, 13vw, 210px); aspect-ratio: 2 / 3; border-radius: 16px; overflow: hidden; background: #333 center / cover; box-shadow: 0 18px 40px rgba(0,0,0,.35); text-align: left; transition: transform .35s ease; animation: cardin .6s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i) * 70ms); }
-  .card:hover { transform: translateY(-8px); }
-  .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,.78) 0%, rgba(0,0,0,0) 60%); }
-  .card span { position: absolute; z-index: 1; left: 14px; right: 14px; bottom: 14px; }
-  .card em { display: block; font-style: normal; font-size: 11px; color: var(--mute); margin-bottom: 4px; }
-  .card b { display: block; font-family: 'Oswald', 'Noto Sans KR', sans-serif; font-weight: 500; text-transform: uppercase; font-size: 18px; line-height: 1.1; }
-  @keyframes cardin { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+.cover{display:grid;grid-template-columns:2fr 1fr;gap:16px;padding-bottom:16px}
+.cover .pair{display:grid;grid-template-rows:1fr 1fr;gap:16px}
+.ph{background:var(--soft);overflow:hidden;position:relative}
+.ph img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s cubic-bezier(.2,.7,.2,1)}
+.ph:hover img{transform:scale(1.02)}
+.ph.missing::after{content:attr(data-name);position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:12px;letter-spacing:.06em}
+.cover .big{aspect-ratio:16/10}
 
-  /* bottom controls */
-  .ctrl { position: absolute; z-index: 4; left: 50%; right: var(--side); bottom: clamp(28px, 6vh, 56px); display: flex; align-items: center; gap: 14px; padding-left: 20px; }
-  .arrow { width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(255,255,255,.5); display: grid; place-items: center; }
-  .arrow:hover { background: rgba(255,255,255,.15); }
-  .arrow svg { width: 16px; height: 16px; }
-  .bar { flex: 1; height: 2px; background: rgba(255,255,255,.25); margin: 0 12px; position: relative; overflow: hidden; }
-  .bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent); }
-  .bar i.run { animation: fill var(--dur) linear forwards; }
-  @keyframes fill { to { width: 100%; } }
-  .num { font-family: 'Oswald', sans-serif; font-size: 40px; font-weight: 500; line-height: 1; min-width: 56px; text-align: right; }
+/* ---------- work index ---------- */
+.sec-title{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding-block:96px 20px;border-bottom:1px solid var(--fg)}
+.sec-title h2{font-family:var(--serif);font-weight:400;font-size:clamp(44px,7vw,104px);line-height:.9;margin:0;letter-spacing:-.01em}
+.index{list-style:none;margin:0;padding:0}
+.index a{display:grid;grid-template-columns:56px minmax(0,2.2fr) minmax(0,1.4fr) minmax(0,1.2fr) 24px;gap:16px;align-items:baseline;
+  padding-block:16px;border-bottom:1px solid var(--line);text-decoration:none;transition:padding .35s,background .35s}
+.index a:hover{padding-left:12px;padding-right:12px;background:var(--soft)}
+.index .n{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.index .t{font-family:var(--serif);font-size:clamp(26px,3vw,40px);line-height:1}
+.index .d{font-size:13px;color:var(--muted)}
+.index .ar{transition:transform .3s}
+.index a:hover .ar{transform:translateX(4px)}
+.group{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-block:28px 6px}
 
-  .note { position: absolute; z-index: 4; left: var(--side); bottom: clamp(28px, 6vh, 56px); font-size: 12px; color: rgba(255,255,255,.55); max-width: 40vw; }
+/* ---------- project chapters ---------- */
+.proj{padding-top:110px;display:flex;flex-direction:column;gap:30px;scroll-margin-top:90px}
+.proj-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:end}
+.proj h3{font-family:var(--serif);font-weight:400;font-size:clamp(48px,8.5vw,132px);line-height:.88;letter-spacing:-.015em;margin:0}
+.proj .count{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;border-top:1px solid var(--line);padding-top:16px}
+.meta div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.meta b{font-weight:600;font-size:14px}
+.meta span{font-size:14px}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.shots .ph:first-child{grid-column:1/-1}
+.shots .ph img{height:auto}
 
-  /* ---------- PHONE (portrait) and short landscape screens ----------
-     Everything stacks top-to-bottom in normal flow, so nothing can overlap. */
-  @media (max-width: 860px), (max-height: 540px) {
-    :root { --side: 20px; }
-    .stage { height: auto; min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; padding-bottom: 24px; }
-    .nav, .copy, .cards, .ctrl { position: relative; inset: auto; left: auto; right: auto; top: auto; bottom: auto; transform: none; z-index: 4; }
-    .nav { padding: 16px var(--side); }
-    .logo { white-space: nowrap; font-size: 14px; gap: 8px; }
-    .logo i { width: 18px; height: 18px; }
-    .logo small { display: none; }
-    .links { gap: 14px; font-size: 11px; white-space: nowrap; }
-    .links .hide-m { display: none; }
+/* ---------- tools ---------- */
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-top:24px}
+.tool{display:flex;flex-direction:column;justify-content:space-between;gap:48px;min-height:240px;padding:24px;background:var(--soft);text-decoration:none;transition:background .3s,color .3s}
+.tool:hover{background:var(--fg);color:var(--bg)}
+.tool:hover .lab{color:inherit;opacity:.7}
+.tool strong{font-family:var(--serif);font-weight:400;font-size:clamp(36px,4.5vw,64px);line-height:.95}
+.tool p{margin:0;font-family:var(--kr);font-size:14px;max-width:36ch}
+.note{font-family:var(--kr);font-size:13px;color:var(--muted);padding-top:14px}
 
-    .copy { width: auto; margin-top: auto; padding: 24px var(--side) 0; }
-    .eyebrow { font-size: 13px; }
-    .eyebrow::before { width: 20px; }
-    .title { font-size: clamp(36px, 11vw, 56px); margin: 10px 0 10px; }
-    .desc { font-size: 14px; margin-bottom: 18px; }
-    .go, .open { height: 42px; }
-    .go { width: 42px; }
+/* ---------- footer ---------- */
+footer{margin-top:140px;border-top:1px solid var(--fg);padding-block:40px calc(28px + env(safe-area-inset-bottom,0px))}
+.thanks{font-family:var(--serif);font-size:clamp(72px,17vw,280px);line-height:.85;letter-spacing:-.02em;margin:0}
+.foot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;padding-top:40px}
+.foot-grid div{display:flex;flex-direction:column;gap:6px}
+.copy{background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer;font-size:18px;text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.marquee{overflow:hidden;border-top:1px solid var(--line);margin-top:48px;padding-block:14px;white-space:nowrap}
+.marquee div{display:inline-flex;gap:40px;animation:slide 30s linear infinite;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+@keyframes slide{to{transform:translateX(-50%)}}
+:focus-visible{outline:2px solid var(--fg);outline-offset:3px}
 
-    .cards { margin-top: 28px; padding: 4px var(--side) 8px; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
-    .cards::-webkit-scrollbar { display: none; }
-    .card { width: 30vw; max-width: 140px; min-width: 104px; aspect-ratio: 3 / 4; border-radius: 12px; scroll-snap-align: start; }
-    .card:hover { transform: none; }
-    .card span { left: 10px; right: 10px; bottom: 10px; }
-    .card em { font-size: 10px; }
-    .card b { font-size: 14px; }
-
-    .ctrl { padding: 18px var(--side) 0; gap: 10px; }
-    .arrow { width: 40px; height: 40px; }
-    .num { font-size: 30px; min-width: 44px; }
-    .note { display: none; }
-    .shade { background: linear-gradient(180deg, rgba(12,12,12,.55) 0%, rgba(12,12,12,.72) 45%, rgba(12,12,12,.92) 100%); }
-  }
-
-  /* phone turned sideways: copy left, cards right */
-  @media (max-height: 540px) and (min-width: 600px) {
-    .stage { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr auto; column-gap: 8px; }
-    .nav { grid-column: 1 / -1; }
-    .copy { grid-column: 1; grid-row: 2; align-self: center; margin: 0; padding-top: 0; }
-    .title { font-size: 40px; }
-    .desc { margin-bottom: 12px; }
-    .cards { grid-column: 2; grid-row: 2; align-self: center; margin: 0; padding-left: 0; }
-    .card { width: 104px; min-width: 0; }
-    .ctrl { grid-column: 1 / -1; grid-row: 3; padding-top: 8px; }
-  }
+@media (max-width:980px){
+  .bar{grid-template-columns:auto 1fr auto}.status{display:none}
+  .info{grid-template-columns:1fr 1fr}
+  .meta{grid-template-columns:1fr 1fr}
+}
+@media (max-width:640px){
+  .bar{grid-template-columns:1fr auto;gap:14px}.menu{grid-column:1/-1;gap:18px;font-size:12px}.mail{display:none}
+  .avatar{width:64px;height:64px}.coin-wrap{inset:11px}
+  .info,.foot-grid,.tools{grid-template-columns:1fr}
+  .cover{grid-template-columns:1fr}.cover .pair{grid-template-rows:none;grid-template-columns:1fr 1fr}
+  .index a{grid-template-columns:36px minmax(0,1fr) 20px}.index .d{display:none}
+  .shots{grid-template-columns:1fr}
+  .proj-head{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .ring,.coin,.scroll i,.marquee div,.pulse{animation:none}
+  .coin{transition:transform .01s}
+  .avatar.flipped .coin{transform:rotateY(180deg)}
+}
 </style>
 </head>
 <body>
 
-<main class="stage" id="stage" aria-roledescription="carousel">
-  <div class="bg" id="bgA"></div>
-  <div class="bg" id="bgB"></div>
-  <div class="shade"></div>
+<header class="bar gut" id="bar">
+  <a class="me" href="#top" aria-label="맨 위로">
+    <span class="avatar" id="avatar" role="img" aria-label="유재성 프로필 — 혼자 있는 모습과 딸을 안은 모습이 번갈아 보여요">
+      <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+        <defs><path id="circ" d="M50,50 m-43,0 a43,43 0 1,1 86,0 a43,43 0 1,1 -86,0"/></defs>
+        <text><textPath href="#circ" textLength="268">Jaeseong Yoo · Interior &amp; Architecture ·</textPath></text>
+      </svg>
+      <span class="coin-wrap"><span class="coin">
+        <span class="face front"><img src="img/profile-a.jpg" alt=""></span>
+        <span class="face back"><img src="img/profile-b.jpg" alt=""></span>
+      </span></span>
+    </span>
+    <span class="who"><b>유재성</b><span>Jaeseong Yoo</span></span>
+  </a>
+  <div class="status"><span><i class="pulse"></i>Working in <b>Ulsan, KR</b></span><span><b id="clock">--:--</b> KST</span></div>
+  <nav class="menu" aria-label="메뉴">
+    <a href="#work">Work</a><a href="#about">About</a><a href="#tools">Tools</a><a href="#contact">Contact</a>
+  </nav>
+  <button class="mail" id="mailTop" type="button"><span>For inquiries</span><b class="js-mail"></b></button>
+</header>
 
-  <header class="nav">
-    <a class="logo" href="/"><i></i>Jamie’s workspace <small>by 유재성</small></a>
-    <nav class="links">
-      <a class="cur" href="/">HOME</a>
-      <a href="/portfolio/">PORTFOLIO</a>
-      <a class="hide-m" href="/rebar/">철근 산정</a>
-      <a class="hide-m" href="/eps2png/">EPS·PDF → PNG</a>
-    </nav>
-  </header>
-
-  <section class="copy" id="copy" aria-live="polite">
-    <p class="eyebrow" id="eyebrow"></p>
-    <h1 class="title" id="title"></h1>
-    <p class="desc" id="desc"></p>
-    <div class="ctas">
-      <a class="go" id="go" href="#" aria-label="열기"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-      <a class="open" id="open" href="#">OPEN</a>
+<main id="top">
+  <section class="hero gut">
+    <span class="lab">Jamie's workspace — Portfolio Vol.1</span>
+    <h1>Interior &amp;<br><i>Architecture</i></h1>
+    <div class="hero-foot">
+      <span class="lab kr">카페·매장 인테리어부터 해외 플랜트까지</span>
+      <span class="scroll"><i></i>Scroll</span>
     </div>
   </section>
 
-  <div class="cards" id="cards"></div>
+  <section class="gut" id="about">
+    <div class="info">
+      <div><h3>About</h3><p>울산을 기반으로 카페와 매장 인테리어, 그리고 베트남 하이퐁과 창원의 플랜트 건축까지 공간을 기획하고 도면으로 완성해 왔습니다. 현장에서 바로 쓰는 작은 도구도 직접 만듭니다.</p></div>
+      <div><h3>Role</h3><ul><li>Design director</li><li>Planning</li><li>Elevation</li><li>Approval</li></ul></div>
+      <div><h3>Based</h3><ul><li>Ulsan, Korea</li><li><span>Projects in</span></li><li>Changwon · Haiphong</li></ul></div>
+      <div><h3>Recognition</h3><ul><li>Transparency <span>— Special prize</span></li><li>Casa de Todos <span>— International competition</span></li><li>Maker Faire Seoul <span>— Extra work</span></li></ul></div>
+    </div>
+    <div class="cover">
+      <div class="ph big" data-name="mars-3.jpg"><img src="portfolio/img/mars-3.jpg" alt="Mars Roasters"></div>
+      <div class="pair">
+        <div class="ph" data-name="hb-r1.jpg"><img src="portfolio/img/hb-r1.jpg" alt="Hanbok Nara"></div>
+        <div class="ph" data-name="skunk-r2.jpg"><img src="portfolio/img/skunk-r2.jpg" alt="Skunk Works"></div>
+      </div>
+    </div>
+  </section>
 
-  <div class="ctrl">
-    <button class="arrow" id="prev" aria-label="이전"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
-    <button class="arrow" id="next" aria-label="다음"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
-    <div class="bar"><i id="prog"></i></div>
-    <div class="num" id="num">01</div>
-  </div>
+  <section class="gut" id="work">
+    <div class="sec-title"><h2>Selected work</h2><span class="lab" id="workCount"></span></div>
+    <div id="index"></div>
+    <div id="chapters"></div>
+  </section>
 
-  <p class="note">도구의 입력값과 파일은 각자의 브라우저 안에서만 처리되며 서버로 전송되지 않습니다.</p>
+  <section class="gut" id="tools">
+    <div class="sec-title"><h2>Tools</h2><span class="lab">현장 사무실용</span></div>
+    <div class="tools">
+      <a class="tool" href="rebar/"><span class="lab">01 — Calculator</span><div><strong>철근 산정</strong><p>철근 물량을 현장에서 바로 계산합니다.</p></div></a>
+      <a class="tool" href="eps2png/"><span class="lab">02 — Converter</span><div><strong>EPS·PDF → PNG</strong><p>EPS와 PDF 도면을 PNG 이미지로 변환합니다.</p></div></a>
+    </div>
+    <p class="note">도구의 입력값과 파일은 각자의 브라우저 안에서만 처리되며 서버로 전송되지 않습니다.</p>
+  </section>
 </main>
 
+<footer class="gut" id="contact">
+  <p class="thanks">Thank <i>you</i></p>
+  <div class="foot-grid">
+    <div><span class="lab">Drop me a line</span><button class="copy" id="mailFoot" type="button"><span class="js-mail"></span></button><span class="lab" id="copyMsg">Click to copy</span></div>
+    <div><span class="lab">Pages</span><a href="portfolio/">Full portfolio</a><a href="rebar/">철근 산정</a><a href="eps2png/">EPS·PDF → PNG</a></div>
+    <div><span class="lab">Local time</span><span><b id="clock2">--:--</b> KST · Ulsan</span><a href="#top">Back to top ↑</a></div>
+  </div>
+  <div class="marquee" aria-hidden="true"><div id="marq"></div></div>
+</footer>
+
 <script>
-  var slides = [
-    { tag: 'Tool · Site office', title: '벽체<br>철근 산정', desc: 'H 앵커 · V U바 개수와 배치도, 3D 보기', href: '/rebar/', img: 'home-img/rebar.jpg' },
-    { tag: 'Tool · AutoCAD', title: 'EPS · PDF<br>→ PNG', desc: 'AutoCAD EPS · PDF를 투명 PNG로 변환', href: '/eps2png/', img: 'home-img/eps2png.jpg' },
-    { tag: 'Interior · Ulsan', title: 'Mars<br>Roasters', desc: 'Cafe · 150㎡', href: '/portfolio/#interior', img: 'portfolio/img/mars-w.jpg' },
-    { tag: 'Interior · Ulsan', title: 'Skunk<br>Works', desc: 'Cafe · 660㎡', href: '/portfolio/#interior', img: 'portfolio/img/skunk-r2.jpg' },
-    { tag: 'Interior · Ulsan', title: 'Hanbok<br>Nara', desc: 'Hanbok store · 198㎡', href: '/portfolio/#interior', img: 'portfolio/img/hb-r1.jpg' },
-    { tag: 'Plant · Haiphong, Vietnam', title: 'H3<br>Project', desc: 'Planning · Elevation · Approval', href: '/portfolio/#plant', img: 'portfolio/img/h3-1.jpg' }
-  ];
-  var DUR = 6500, cur = 0, timer = null, layer = 0;
-  var bgs = [document.getElementById('bgA'), document.getElementById('bgB')];
-  var $ = function (id) { return document.getElementById(id); };
-  document.documentElement.style.setProperty('--dur', DUR + 'ms');
+/* ===== 여기만 고치면 돼요 ===== */
+const CONFIG = {
+  email: "your@email.com",          // ← 실제 이메일로 바꾸세요
+  imgBase: "portfolio/img/",
+};
+const PROJECTS = [
+  {group:"Interior", name:"Mars Roasters", type:"Cafe", area:"150㎡", loc:"Ulsan", role:"Design director",
+   imgs:["mars-1","mars-3","mars-5","mars-w","mars-2","mars-s1","mars-s2","mars-s3","mars-s4","mars-6"]},
+  {group:"Interior", name:"Skunk Works", type:"Cafe", area:"660㎡", loc:"Ulsan", role:"—",
+   imgs:["skunk-r1","skunk-r2","skunk-grid","skunk-m1","skunk-m2"]},
+  {group:"Interior", name:"Hanbok Nara", type:"Hanbok store", area:"198㎡", loc:"Ulsan", role:"Design director",
+   imgs:["hb-r1","hb-r2","hb-grid","hb-arch","hb-iso"]},
+  {group:"Plant · Architecture", name:"H3 Canteen", type:"Plant interior", area:"—", loc:"Haiphong, Vietnam", role:"—",
+   imgs:["h3c-1","h3c-2"]},
+  {group:"Plant · Architecture", name:"LG Electronics Integrated Laboratory", type:"Plant", area:"—", loc:"Changwon", role:"Planning, Elevation, Approval",
+   imgs:["lg-1"]},
+  {group:"Plant · Architecture", name:"H3 Project", type:"Plant", area:"—", loc:"Haiphong, Vietnam", role:"Planning, Elevation, Approval",
+   imgs:["h3-1","h3-2","h3-3"]},
+  {group:"Academic", name:"Transparency", type:"Art museum", area:"—", loc:"—", role:"Special prize",
+   imgs:["ac-05","ac-04","ac-07"]},
+  {group:"Academic", name:"The Continuous Moment", type:"Urban design", area:"—", loc:"—", role:"Graduation project",
+   imgs:["ac-09","ac-10","ac-12"]},
+  {group:"Academic", name:"Experiencing Platform", type:"Community facility", area:"—", loc:"—", role:"—",
+   imgs:["ac-14","ac-13","ac-16"]},
+  {group:"Academic", name:"Connecting School", type:"Facade design", area:"—", loc:"—", role:"Grasshopper",
+   imgs:["ac-18","ac-17","ac-19"]},
+  {group:"Academic", name:"Casa de Todos", type:"Shelter", area:"—", loc:"—", role:"International competition",
+   imgs:["ac-20"]},
+  {group:"Academic", name:"Competition Works", type:"Undefined park · Hangeul tactile paving", area:"—", loc:"—", role:"Competition",
+   imgs:["ac-28"]},
+  {group:"Academic", name:"Extra Work", type:"Maker Faire Seoul · Techcapsule · KMU VR Campus", area:"—", loc:"—", role:"—",
+   imgs:["ac-21"]},
+];
 
-  slides.forEach(function (s) { var im = new Image(); im.src = s.img; });
+(() => {
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const two = n => String(n).padStart(2,"0");
 
-  function show(i) {
-    cur = (i + slides.length) % slides.length;
-    var s = slides[cur];
-    var next = bgs[1 - layer], prev = bgs[layer];
-    next.style.backgroundImage = 'url(' + s.img + ')';
-    next.classList.add('on'); prev.classList.remove('on'); layer = 1 - layer;
+/* email */
+document.querySelectorAll(".js-mail").forEach(el => el.textContent = CONFIG.email);
+async function copyMail(){
+  const msg = $("copyMsg");
+  try { await navigator.clipboard.writeText(CONFIG.email); msg.textContent = "Copied"; }
+  catch(e){ msg.textContent = CONFIG.email; }
+  setTimeout(() => msg.textContent = "Click to copy", 1800);
+}
+$("mailFoot").onclick = copyMail;
+$("mailTop").onclick = () => { copyMail(); $("mailTop").querySelector("span").textContent = "Copied"; setTimeout(() => $("mailTop").querySelector("span").textContent = "For inquiries", 1800); };
 
-    var copy = $('copy'); copy.classList.remove('swap'); void copy.offsetWidth; copy.classList.add('swap');
-    $('eyebrow').textContent = s.tag;
-    $('title').innerHTML = s.title;
-    $('desc').textContent = s.desc;
-    $('go').href = s.href; $('open').href = s.href;
-    $('num').textContent = String(cur + 1).padStart(2, '0');
+/* clock (Korea time) */
+const fmt = new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Seoul",hour:"2-digit",minute:"2-digit"});
+const tick = () => { const t = fmt.format(new Date()); $("clock").textContent = t; $("clock2").textContent = t; };
+tick(); setInterval(tick, 15000);
 
-    var html = '';
-    for (var k = 1; k <= 4; k++) {
-      var j = (cur + k) % slides.length, c = slides[j];
-      html += '<button class="card" style="--i:' + k + ';background-image:url(' + c.img + ')" data-i="' + j + '" aria-label="' + c.title.replace('<br>', ' ') + '"><span><em>' + c.tag + '</em><b>' + c.title + '</b></span></button>';
-    }
-    $('cards').innerHTML = html;
+/* avatar: click flips (also the only way to flip when reduced motion is on) */
+const av = $("avatar");
+av.addEventListener("click", e => {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches){ e.preventDefault(); av.classList.toggle("flipped"); }
+});
 
-    var p = $('prog'); p.classList.remove('run'); void p.offsetWidth; p.classList.add('run');
-    clearTimeout(timer); timer = setTimeout(function () { show(cur + 1); }, DUR);
-  }
+/* sticky bar border */
+const bar = $("bar");
+addEventListener("scroll", () => bar.classList.toggle("scrolled", scrollY > 8), {passive:true});
 
-  $('next').onclick = function () { show(cur + 1); };
-  $('prev').onclick = function () { show(cur - 1); };
-  $('cards').onclick = function (e) { var b = e.target.closest('.card'); if (b) show(+b.dataset.i); };
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowRight') show(cur + 1);
-    if (e.key === 'ArrowLeft') show(cur - 1);
+/* missing images → labelled placeholder */
+function guard(root){
+  root.querySelectorAll(".ph img").forEach(img => {
+    const fail = () => { img.parentElement.classList.add("missing"); img.style.visibility = "hidden"; if (!img.parentElement.style.aspectRatio) img.parentElement.style.aspectRatio = "4/3"; };
+    if (img.complete && !img.naturalWidth) fail(); else img.addEventListener("error", fail);
   });
-  var sx = null;
-  $('stage').addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; }, { passive: true });
-  $('stage').addEventListener('touchend', function (e) {
-    if (sx === null) return; var dx = e.changedTouches[0].clientX - sx;
-    if (Math.abs(dx) > 50 && !e.target.closest('.cards')) show(cur + (dx < 0 ? 1 : -1)); sx = null;
-  });
-  show(0);
+}
+
+/* work index + chapters */
+$("workCount").textContent = `${two(PROJECTS.length)} projects`;
+let idx = "", last = "";
+PROJECTS.forEach((p, i) => {
+  if (p.group !== last){ idx += `<div class="group">${esc(p.group)}</div>`; last = p.group; }
+  const d = [p.type, p.loc].filter(x => x && x !== "—").join(" · ");
+  idx += `<a href="#${slug(p.name)}"><span class="n">${two(i+1)}</span><span class="t">${esc(p.name)}</span><span class="d">${esc(d)}</span><span class="d">${esc(p.role === "—" ? "" : p.role)}</span><span class="ar">→</span></a>`;
+});
+$("index").innerHTML = idx;
+
+$("chapters").innerHTML = PROJECTS.map((p, i) => `
+  <article class="proj" id="${slug(p.name)}">
+    <div class="proj-head"><h3>${esc(p.name)}</h3><span class="count">${two(i+1)} / ${two(PROJECTS.length)} — ${esc(p.group)}</span></div>
+    <div class="meta">
+      <div><b>Type</b><span>${esc(p.type)}</span></div>
+      <div><b>Area</b><span>${esc(p.area)}</span></div>
+      <div><b>Location</b><span>${esc(p.loc)}</span></div>
+      <div><b>Role</b><span>${esc(p.role)}</span></div>
+    </div>
+    <div class="shots">${p.imgs.map(n => `<div class="ph" data-name="${n}.jpg"><img loading="lazy" src="${CONFIG.imgBase}${n}.jpg" alt="${esc(p.name)}"></div>`).join("")}</div>
+  </article>`).join("");
+guard(document);
+
+/* footer marquee */
+const words = ["Thank you","감사합니다","Interior","Architecture","Ulsan","Haiphong","Changwon"];
+const run = words.map(w => `<span>${w} ✳</span>`).join("");
+$("marq").innerHTML = run + run;
+})();
 </script>
 </body>
 </html>
