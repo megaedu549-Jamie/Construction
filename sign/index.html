@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ink Sign System</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* layout: technical HUD — one column; top system bar, condensed-caps hero, the signature field as a drafting sheet with live readouts, then pen and export panels as bordered spec cells */
+:root{
+  --bg:#0a0a0b; --surface:#111113; --fg:#ecebe7; --muted:#8b8a85; --line:#2a2a2d; --line-2:#3a3a3e;
+  --accent:#ff4a2b; --accent-fg:#0a0a0b; --cta:#ecebe7; --cta-fg:#0a0a0b; --ok:#5fd38d;
+  --paper:#fbfbf9; --paper-ink:#141518; --paper-grid:rgba(20,21,24,.06); --paper-line:#c4c4c0; --paper-dim:#9a9a95;
+  --display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --text:"IBM Plex Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#efefec; --surface:#f8f8f6; --fg:#0c0c0d; --muted:#6c6b66; --line:#cfcfca; --line-2:#b9b9b3;
+  --accent:#e2361a; --accent-fg:#ffffff; --cta:#0c0c0d; --cta-fg:#f8f8f6; --ok:#1f8a4c; color-scheme:light }}
+:root[data-theme="light"]{
+  --bg:#efefec; --surface:#f8f8f6; --fg:#0c0c0d; --muted:#6c6b66; --line:#cfcfca; --line-2:#b9b9b3;
+  --accent:#e2361a; --accent-fg:#ffffff; --cta:#0c0c0d; --cta-fg:#f8f8f6; --ok:#1f8a4c; color-scheme:light }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--text);font-size:14px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding-block:0 56px;display:flex;flex-direction:column}
+.mono{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* system bar */
+.sys{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);display:flex;align-items:center;gap:20px;
+  border-bottom:1px solid var(--line);padding-block:14px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:21;background:var(--bg)}
+.brand{font-family:var(--display);font-weight:800;font-stretch:118%;font-size:15px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.brand b{color:var(--accent);font-weight:800}
+.nav{display:flex;gap:18px;flex:1;min-width:0;overflow:hidden}
+.nav a{color:var(--muted);text-decoration:none;white-space:nowrap}
+.nav a:hover,.nav a:focus-visible{color:var(--fg)}
+.state{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+.state[data-s="drawing"] .dot,.state[data-s="boot"] .dot{background:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:28px 48px;align-items:end;padding-block:44px 36px;border-bottom:1px solid var(--line)}
+.eyebrow{color:var(--muted);display:block;margin-bottom:14px}
+h1{font-family:var(--display);font-weight:780;font-stretch:72%;text-transform:uppercase;font-size:clamp(44px,8.2vw,96px);line-height:.9;letter-spacing:-.01em;margin:0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{margin:0 0 18px;color:var(--muted);max-width:42ch}
+.specs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line)}
+.specs div{padding:10px 10px 0 0;display:flex;flex-direction:column;gap:2px;min-width:0}
+.specs div+div{padding-left:10px;border-left:1px solid var(--line)}
+.specs strong{font-family:var(--display);font-stretch:85%;font-weight:700;font-size:17px;text-transform:uppercase;letter-spacing:.01em}
+.specs span{color:var(--muted);font-size:12px}
+
+/* section head */
+.sec{padding-block:30px 0;display:flex;flex-direction:column;gap:12px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sec-h h2{margin:0;font-family:var(--display);font-stretch:85%;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.01em;display:flex;gap:12px;align-items:baseline}
+.sec-h h2 .mono{color:var(--accent)}
+.sec-h .mono{color:var(--muted)}
+
+/* signature field */
+.field{position:relative;border:1px solid var(--line-2);padding:14px;background:var(--surface)}
+.field::before,.field::after,.corner-b::before,.corner-b::after{content:"";position:absolute;width:12px;height:12px;border-color:var(--fg);border-style:solid;pointer-events:none}
+.field::before{left:-1px;top:-1px;border-width:2px 0 0 2px}
+.field::after{right:-1px;top:-1px;border-width:2px 2px 0 0}
+.corner-b::before{left:-1px;bottom:-1px;border-width:0 0 2px 2px}
+.corner-b::after{right:-1px;bottom:-1px;border-width:0 2px 2px 0}
+.pad{position:relative;background-color:var(--paper);aspect-ratio:5/2;max-width:100%;overflow:hidden;touch-action:none;cursor:none;
+  background-image:linear-gradient(var(--paper-grid) 1px,transparent 1px),linear-gradient(90deg,var(--paper-grid) 1px,transparent 1px);
+  background-size:4% 10%;background-position:-1px -1px}
+.pad canvas{position:absolute;inset:0;width:100%;height:100%}
+.guide{position:absolute;left:7%;right:7%;bottom:24%;border-bottom:1.5px solid var(--paper-line);pointer-events:none}
+.guide::before{content:"✕";position:absolute;left:-2px;bottom:5px;color:var(--paper-dim);font-size:18px;line-height:1}
+.guide span{position:absolute;right:0;top:8px;color:var(--paper-dim)}
+.tag{position:absolute;left:12px;top:12px;pointer-events:none;display:flex;gap:8px;align-items:center;color:var(--paper-ink)}
+.tag i{font-style:normal;background:var(--paper-ink);color:var(--paper);padding:3px 7px}
+.tag span{color:var(--paper-dim)}
+.hair{position:absolute;pointer-events:none;background:var(--accent);opacity:.55}
+.hair.h{left:0;right:0;height:1px}
+.hair.v{top:0;bottom:0;width:1px}
+.reticle{position:absolute;width:15px;height:15px;margin:-7px 0 0 -7px;border:1px solid var(--accent);pointer-events:none}
+.coord{position:absolute;pointer-events:none;color:var(--paper);background:var(--accent);padding:2px 6px;white-space:nowrap;transform:translate(12px,10px)}
+.boot{position:absolute;left:14px;bottom:12px;pointer-events:none;color:var(--paper-dim);display:flex;flex-direction:column;gap:1px;transition:opacity .5s}
+.boot b{color:var(--paper-ink);font-weight:500}
+.boot .okk{color:var(--accent)}
+.hud{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;padding-top:12px}
+.hud .kv{display:flex;gap:8px;color:var(--muted)}
+.hud .kv b{color:var(--fg);font-weight:500}
+.hud .sp{flex:1}
+.bbtn{border:1px solid var(--line-2);background:transparent;padding:7px 12px;cursor:pointer}
+.bbtn:hover:not(:disabled){border-color:var(--fg)}
+.bbtn:disabled{opacity:.35;cursor:default}
+.hint{color:var(--muted)}
+
+/* panels */
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));border:1px solid var(--line)}
+.cell{padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0;border-right:1px solid var(--line)}
+.cell:last-child{border-right:0}
+.cell .k{color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.c-pen{grid-column:span 6}.c-ink{grid-column:span 3}.c-w{grid-column:span 3}
+.pens{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pen{border:1px solid var(--line);background:transparent;padding:8px 10px 6px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:4px;min-width:0}
+.pen:hover{border-color:var(--line-2)}
+.pen[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.pen .row{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.pen .nm{font-family:var(--display);font-stretch:85%;font-weight:700;text-transform:uppercase;font-size:14px;letter-spacing:.02em}
+.pen .ko{color:var(--muted);font-size:12px}
+.pen canvas{width:100%;height:40px;display:block;background:var(--paper)}
+.inks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ink{border:1px solid var(--line);background:transparent;padding:6px;cursor:pointer;display:flex;flex-direction:column;gap:6px;text-align:left}
+.ink i{display:block;height:34px}
+.ink span{color:var(--muted)}
+.ink[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.ink[aria-pressed="true"] span{color:var(--fg)}
+.big{font-family:var(--display);font-stretch:72%;font-weight:760;font-size:64px;line-height:.9;letter-spacing:-.01em}
+.big small{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--muted);margin-left:6px;letter-spacing:.08em}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;background:transparent;cursor:pointer;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--line-2)}
+input[type=range]::-moz-range-track{height:1px;background:var(--line-2)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border:0;margin-top:-7px;border-radius:0}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--accent);border:0;border-radius:0}
+.ticks{display:flex;justify-content:space-between;color:var(--muted)}
+
+.c-fmt{grid-column:span 4}.c-res{grid-column:span 5}.c-go{grid-column:span 3;justify-content:space-between}
+.seg{display:flex;flex-direction:column;gap:6px}
+.opt{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);background:transparent;padding:9px 11px;cursor:pointer;text-align:left}
+.opt:hover{border-color:var(--line-2)}
+.opt[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.opt .l{display:flex;flex-direction:column;min-width:0}
+.opt .l b{font-weight:500}
+.opt .l span{color:var(--muted);font-size:12px}
+.opt .r{color:var(--muted)}
+.opt[aria-pressed="true"] .r{color:var(--accent)}
+.check{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;cursor:pointer}
+.check input{accent-color:var(--accent);width:15px;height:15px;margin:0}
+.cta{border:0;background:var(--cta);color:var(--cta-fg);padding:16px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-family:var(--display);font-stretch:85%;font-weight:700;text-transform:uppercase;font-size:17px;letter-spacing:.02em}
+.cta span{transition:transform .2s}
+.cta:hover span{transform:translateX(4px)}
+.status{color:var(--muted);font-size:13px;min-height:21px}
+.preview{border:1px solid var(--line);border-top:0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0}
+.preview .img{background-color:#fff;background-image:linear-gradient(45deg,#e9e9e6 25%,transparent 25%),linear-gradient(-45deg,#e9e9e6 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e9e9e6 75%),linear-gradient(-45deg,transparent 75%,#e9e9e6 75%);
+  background-size:14px 14px;background-position:0 0,0 7px,7px -7px,-7px 0;padding:18px;display:flex;justify-content:center;align-items:center;min-width:0}
+.preview img{max-height:200px;max-width:100%}
+.meta{padding:16px 18px;display:flex;flex-direction:column;gap:6px;border-left:1px solid var(--line);min-width:180px}
+.meta div{display:flex;justify-content:space-between;gap:16px;color:var(--muted)}
+.meta b{color:var(--fg);font-weight:500}
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted)}
+
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr}
+  .c-pen{grid-column:span 12;border-right:0;border-bottom:1px solid var(--line)}
+  .c-ink,.c-w{grid-column:span 6}
+  .c-fmt,.c-res{grid-column:span 6}
+  .c-res{border-right:0}
+  .c-go{grid-column:span 12;border-top:1px solid var(--line)}
+  .nav{display:none}.sys{justify-content:space-between}
+}
+@media (max-width:560px){
+  .pad{aspect-ratio:3/2}
+  .c-ink,.c-w,.c-fmt,.c-res{grid-column:span 12;border-right:0;border-bottom:1px solid var(--line)}
+  .c-go{border-top:0}
+  .preview{grid-template-columns:1fr}.meta{border-left:0;border-top:1px solid var(--line)}
+  .specs strong{font-size:15px}
+  .guide span,.hud .hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="sys">
+    <a class="brand" href="../" title="Jamie's workspace 홈으로" style="color:inherit;text-decoration:none">← Ink<b>/</b>Sign</a>
+    <nav class="nav mono" aria-label="섹션">
+      <a href="#sign">[01] Sign</a><a href="#pen">[02] Pen</a><a href="#export">[03] Export</a>
+    </nav>
+    <div class="state mono" id="state" data-s="boot"><span class="dot"></span><span id="stateText">Initializing</span></div>
+  </header>
+
+  <section class="hero">
+    <div>
+      <span class="eyebrow mono">Signature system · v2.0</span>
+      <h1>Sign once.<br>Keep the <em>ink.</em></h1>
+    </div>
+    <div>
+      <p class="lede">마우스나 펜으로 서명하면 펜 종류에 따라 굵기가 실제 잉크처럼 변해요. 빠르게 그으면 가늘고, 천천히 누르면 진해집니다.</p>
+      <div class="specs">
+        <div><strong>4 Nibs</strong><span>만년필·볼펜·붓펜·사인펜</span></div>
+        <div><strong>Pressure</strong><span>펜 태블릿 필압 반영</span></div>
+        <div><strong>PNG / JPG</strong><span>투명 배경 · 최대 6배</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="sign" aria-label="서명 영역">
+    <div class="sec-h">
+      <h2><span class="mono">[01]</span>Signature field</h2>
+      <span class="mono tnum" id="readout">X:0000PX Y:0000PX</span>
+    </div>
+    <div class="field"><div class="corner-b"></div>
+      <div class="pad" id="pad">
+        <div class="guide"><span class="mono">Sign here</span></div>
+        <canvas id="base"></canvas><canvas id="live"></canvas>
+        <div class="tag mono" id="exampleTag"><i>Sample</i><span>그리기 시작하면 지워져요</span></div>
+        <div class="boot mono" id="boot" aria-hidden="true"></div>
+        <div class="hair h" id="hh" hidden></div><div class="hair v" id="hv" hidden></div>
+        <div class="reticle" id="ret" hidden></div><div class="coord mono tnum" id="coord" hidden></div>
+      </div>
+      <div class="hud mono tnum">
+        <span class="kv">Strokes <b id="mStrokes">00</b></span>
+        <span class="kv">Speed <b id="mSpeed">0.00</b> px/ms</span>
+        <span class="kv">Width <b id="mWidth">0.0</b> px</span>
+        <span class="kv">Pressure <b id="mPres">—</b></span>
+        <span class="sp"></span>
+        <span class="hint">[ Click and drag to sign ]</span>
+        <button class="bbtn mono" id="undo" title="되돌리기 (Ctrl+Z)">[ Undo ]</button>
+        <button class="bbtn mono" id="clear">[ Clear ]</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="pen" aria-label="펜 설정">
+    <div class="sec-h">
+      <h2><span class="mono">[02]</span>Pen</h2>
+      <span class="mono">펜 · 잉크 · 굵기</span>
+    </div>
+    <div class="grid">
+      <div class="cell c-pen">
+        <span class="k mono"><span>Nib</span><span>펜 종류</span></span>
+        <div class="pens" id="pens">
+          <button class="pen" data-pen="fountain" aria-pressed="true"><span class="row"><span class="nm">Fountain</span><span class="ko">만년필</span></span><canvas data-prev="fountain"></canvas></button>
+          <button class="pen" data-pen="ballpoint" aria-pressed="false"><span class="row"><span class="nm">Ballpoint</span><span class="ko">볼펜</span></span><canvas data-prev="ballpoint"></canvas></button>
+          <button class="pen" data-pen="brush" aria-pressed="false"><span class="row"><span class="nm">Brush</span><span class="ko">붓펜</span></span><canvas data-prev="brush"></canvas></button>
+          <button class="pen" data-pen="felt" aria-pressed="false"><span class="row"><span class="nm">Felt tip</span><span class="ko">사인펜</span></span><canvas data-prev="felt"></canvas></button>
+        </div>
+      </div>
+      <div class="cell c-ink">
+        <span class="k mono"><span>Ink</span><span>잉크 색</span></span>
+        <div class="inks" id="inks">
+          <button class="ink" data-ink="#141518" aria-pressed="true"><i style="background:#141518"></i><span class="mono">Black</span></button>
+          <button class="ink" data-ink="#1e2a4a" aria-pressed="false"><i style="background:#1e2a4a"></i><span class="mono">Blue-black</span></button>
+          <button class="ink" data-ink="#1c3fbf" aria-pressed="false"><i style="background:#1c3fbf"></i><span class="mono">Royal blue</span></button>
+          <button class="ink" data-ink="#b3261e" aria-pressed="false"><i style="background:#b3261e"></i><span class="mono">Seal red</span></button>
+        </div>
+      </div>
+      <div class="cell c-w">
+        <label class="k mono" for="size"><span>Weight</span><span>굵기</span></label>
+        <div class="big tnum"><span id="sizeOut">4.0</span><small>pt</small></div>
+        <input type="range" id="size" min="1" max="10" step="0.5" value="4">
+        <div class="ticks mono tnum"><span>01</span><span>05</span><span>10</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="export" aria-label="저장">
+    <div class="sec-h">
+      <h2><span class="mono">[03]</span>Export</h2>
+      <span class="mono">이미지로 저장</span>
+    </div>
+    <div class="grid">
+      <div class="cell c-fmt">
+        <span class="k mono"><span>Format</span><span>파일 형식</span></span>
+        <div class="seg" id="fmt">
+          <button class="opt" data-fmt="png" aria-pressed="true"><span class="l"><b>PNG</b><span>투명 배경 · 문서에 얹기 좋음</span></span><span class="r mono">.png</span></button>
+          <button class="opt" data-fmt="jpg" aria-pressed="false"><span class="l"><b>JPG</b><span>흰 배경 · 용량 작음</span></span><span class="r mono">.jpg</span></button>
+        </div>
+      </div>
+      <div class="cell c-res">
+        <span class="k mono"><span>Resolution</span><span>해상도</span></span>
+        <div class="seg" id="res">
+          <button class="opt" data-res="1" aria-pressed="false"><span class="l"><b>보통</b><span>메신저·웹</span></span><span class="r mono tnum" data-size="1">—</span></button>
+          <button class="opt" data-res="2" aria-pressed="true"><span class="l"><b>고화질</b><span>전자 문서</span></span><span class="r mono tnum" data-size="2">—</span></button>
+          <button class="opt" data-res="4" aria-pressed="false"><span class="l"><b>인쇄용</b><span>출력·스캔 대체</span></span><span class="r mono tnum" data-size="4">—</span></button>
+        </div>
+      </div>
+      <div class="cell c-go">
+        <label class="check"><input type="checkbox" id="crop" checked> 서명 크기에 맞춰 여백 자르기</label>
+        <button class="cta" id="save">Export signature <span>→</span></button>
+      </div>
+    </div>
+    <div class="preview" id="preview" hidden>
+      <div class="img"><img id="previewImg" alt="저장될 서명 이미지"></div>
+      <div class="meta mono tnum">
+        <div>Output <b id="pvSize">—</b></div>
+        <div>Format <b id="pvFmt">—</b></div>
+        <div>File <b id="pvBytes">—</b></div>
+      </div>
+    </div>
+    <div class="status" id="status" role="status"></div>
+  </section>
+
+  <footer class="mono"><span>Ink/Sign — 서명은 이 브라우저 안에서만 처리돼요</span><span>Ctrl+Z 되돌리기</span></footer>
+</div>
+
+<script>
+(() => {
+const W = 1000, H = 400;
+const $ = id => document.getElementById(id);
+const pad = $("pad"), base = $("base"), live = $("live");
+const bctx = base.getContext("2d"), lctx = live.getContext("2d");
+const PENS = { fountain:{alpha:.94, taper:16}, ballpoint:{alpha:.86, taper:6}, brush:{alpha:1, taper:34}, felt:{alpha:.93, taper:3} };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let state = {pen:"fountain", ink:"#141518", size:4, fmt:"png", res:2, crop:true};
+try { Object.assign(state, JSON.parse(localStorage.getItem("signpad.settings")||"{}")); } catch(e){}
+let strokes = [], cur = null, isExample = false, raf = 0, intro = null;
+
+/* ---------- ink geometry ---------- */
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const smooth = t => t*t*(3-2*t);
+function widthTarget(s, speed, angle, pressure){
+  const b = s.size; let w;
+  switch(s.pen){
+    case "ballpoint": w = b*0.55*(1.08 - 0.28*clamp(speed/2.2,0,1)); break;
+    case "brush":     w = b*1.9*clamp(1.45 - speed*0.55, 0.22, 1.45); break;
+    case "felt":      w = b*0.95*(1.02 - 0.08*clamp(speed/2,0,1)); break;
+    default: { const nib = 0.42 + 0.85*Math.abs(Math.sin(angle + 0.6)); w = b*0.85*nib*(1.12 - 0.35*clamp(speed/2.5,0,1)); }
+  }
+  if (pressure != null) w *= 0.35 + pressure*1.3;
+  return w;
+}
+function geom(st, done){
+  const raw = st.pts; if(!raw.length) return [];
+  const P = [raw[0]];
+  for (let i=1;i<raw.length;i++){ const q=P[P.length-1], p=raw[i]; if (Math.hypot(p.x-q.x,p.y-q.y) >= 1.2 || i===raw.length-1) P.push(p); }
+  const n = P.length, R = new Array(n), L = new Array(n);
+  let sp = 0, w = null, acc = 0;
+  for (let i=0;i<n;i++){
+    const p = P[i], q = P[Math.max(0,i-1)], nx = P[Math.min(n-1,i+1)];
+    const d = Math.hypot(p.x-q.x,p.y-q.y), dt = Math.max(1, p.t-q.t);
+    acc += d; L[i] = acc;
+    sp = i ? sp*0.62 + (d/dt)*0.38 : 0.3;
+    const tgt = widthTarget(st, sp, Math.atan2(nx.y-q.y, nx.x-q.x), p.p);
+    w = w==null ? tgt : w*0.68 + tgt*0.32;
+    R[i] = w/2;
+  }
+  const tl = PENS[st.pen].taper;
+  for (let i=0;i<n;i++){
+    let f = 0.3 + 0.7*smooth(clamp(L[i]/tl,0,1));
+    if (done) f *= 0.25 + 0.75*smooth(clamp((acc-L[i])/(tl*1.4),0,1));
+    R[i] = Math.max(0.35, R[i]*f);
+  }
+  if (n === 1) return [{x:P[0].x,y:P[0].y,r:Math.max(R[0],st.size*0.35)}];
+  const out = [];
+  for (let i=0;i<n-1;i++){
+    const p0=P[Math.max(0,i-1)], p1=P[i], p2=P[i+1], p3=P[Math.min(n-1,i+2)];
+    const seg = Math.hypot(p2.x-p1.x,p2.y-p1.y);
+    const k = Math.max(1, Math.ceil(seg/Math.max(0.3, Math.min(R[i],R[i+1])*0.35)));
+    for (let j=0;j<k;j++){
+      const t=j/k, t2=t*t, t3=t2*t;
+      out.push({
+        x:0.5*((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3),
+        y:0.5*((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3),
+        r:R[i]+(R[i+1]-R[i])*t });
+    }
+  }
+  out.push({x:P[n-1].x,y:P[n-1].y,r:R[n-1]});
+  return out;
+}
+function paint(ctx, st, done, s, ox=0, oy=0){
+  const g = geom(st, done); if(!g.length) return;
+  ctx.save(); ctx.globalAlpha = PENS[st.pen].alpha; ctx.fillStyle = st.ink; ctx.beginPath();
+  for (const c of g){ const x=(c.x-ox)*s, y=(c.y-oy)*s, r=c.r*s; ctx.moveTo(x+r,y); ctx.arc(x,y,r,0,Math.PI*2); }
+  ctx.fill(); ctx.restore();
+}
+function bounds(){
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  for (const st of strokes) for (const c of geom(st,true)){ x0=Math.min(x0,c.x-c.r); y0=Math.min(y0,c.y-c.r); x1=Math.max(x1,c.x+c.r); y1=Math.max(y1,c.y+c.r); }
+  return isFinite(x0) ? {x0,y0,x1,y1} : null;
+}
+
+/* ---------- canvas ---------- */
+function resize(){
+  const r = pad.getBoundingClientRect(), dpr = window.devicePixelRatio||1;
+  for (const c of [base,live]){ c.width = Math.max(1,Math.round(r.width*dpr)); c.height = Math.max(1,Math.round(r.height*dpr)); }
+  redraw();
+}
+function view(){
+  const sx = base.width/W, sy = base.height/H, s = Math.min(sx,sy);
+  return {s, ox: -(base.width/s - W)/2, oy: -(base.height/s - H)/2};
+}
+function redraw(){
+  const v = view();
+  bctx.clearRect(0,0,base.width,base.height);
+  if (!intro) for (const st of strokes) paint(bctx, st, true, v.s, v.ox, v.oy);
+  drawLive(); meters(); sizes();
+  $("undo").disabled = !strokes.length || isExample; $("clear").disabled = !strokes.length;
+}
+function drawLive(){
+  lctx.clearRect(0,0,live.width,live.height);
+  if (cur){ const v=view(); paint(lctx, cur, false, v.s, v.ox, v.oy); }
+}
+function toLogical(e){
+  const r = pad.getBoundingClientRect(), v = view(), dpr = base.width / r.width;
+  return { x:(e.clientX-r.left)*dpr/v.s + v.ox, y:(e.clientY-r.top)*dpr/v.s + v.oy };
+}
+
+/* ---------- HUD ---------- */
+const pad4 = n => String(Math.max(0,Math.round(n))).padStart(4,"0");
+function setState(s, text){ $("state").dataset.s = s; $("stateText").textContent = text; }
+function meters(){
+  $("mStrokes").textContent = String(isExample ? 0 : strokes.length).padStart(2,"0");
+  if (!strokes.length && !cur) setState("ready","Ready");
+  else if (isExample) setState("ready","Sample loaded");
+  else if (!cur) setState("ready", `Signed · ${strokes.length} stroke${strokes.length>1?"s":""}`);
+}
+function hud(e){
+  if (e.pointerType !== "mouse"){ hideCross(); return; }
+  const r = pad.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const p = toLogical(e);
+  $("hh").style.top = y+"px"; $("hv").style.left = x+"px";
+  $("ret").style.left = x+"px"; $("ret").style.top = y+"px";
+  const c = $("coord"); c.style.left = x+"px"; c.style.top = y+"px";
+  c.textContent = `X:${pad4(p.x)} Y:${pad4(p.y)}`;
+  c.style.transform = `translate(${x > r.width-150 ? "calc(-100% - 12px)" : "12px"},${y > r.height-40 ? "calc(-100% - 10px)" : "10px"})`;
+  for (const id of ["hh","hv","ret","coord"]) $(id).hidden = false;
+  $("readout").textContent = `X:${pad4(p.x)}PX Y:${pad4(p.y)}PX`;
+}
+function hideCross(){ for (const id of ["hh","hv","ret","coord"]) $(id).hidden = true; }
+pad.addEventListener("pointerleave", hideCross);
+pad.addEventListener("pointerover", e => { if (e.pointerType !== "mouse") pad.style.cursor = "crosshair"; else pad.style.cursor = "none"; });
+
+/* ---------- input ---------- */
+pad.addEventListener("pointerdown", e => {
+  if (e.button !== 0 && e.pointerType === "mouse") return;
+  e.preventDefault();
+  stopIntro();
+  if (isExample){ strokes = []; isExample = false; $("exampleTag").hidden = true; redraw(); }
+  pad.setPointerCapture(e.pointerId);
+  const p = toLogical(e);
+  cur = {pen:state.pen, ink:state.ink, size:state.size, pts:[{x:p.x,y:p.y,t:e.timeStamp,p:e.pointerType==="pen"&&e.pressure>0?e.pressure:null}]};
+  setState("drawing","Drawing"); hud(e); drawLive();
+});
+let lastP = null;
+pad.addEventListener("pointermove", e => {
+  hud(e);
+  if (!cur) return;
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  for (const ev of (evs.length?evs:[e])){
+    const p = toLogical(ev), pr = ev.pointerType==="pen"&&ev.pressure>0?ev.pressure:null;
+    cur.pts.push({x:p.x,y:p.y,t:ev.timeStamp,p:pr});
+  }
+  const n = cur.pts.length;
+  if (n > 3){
+    const a = cur.pts[n-4], b = cur.pts[n-1];
+    const sp = Math.hypot(b.x-a.x,b.y-a.y)/Math.max(1,b.t-a.t);
+    $("mSpeed").textContent = sp.toFixed(2);
+    $("mWidth").textContent = widthTarget(cur, sp, Math.atan2(b.y-a.y,b.x-a.x), b.p).toFixed(1);
+    $("mPres").textContent = b.p == null ? "—" : b.p.toFixed(2);
+  }
+  if (!raf) raf = requestAnimationFrame(() => { raf = 0; drawLive(); });
+});
+function end(){
+  if (!cur) return;
+  strokes.push(cur); cur = null;
+  const v = view(); paint(bctx, strokes[strokes.length-1], true, v.s, v.ox, v.oy);
+  lctx.clearRect(0,0,live.width,live.height);
+  $("undo").disabled = false; $("clear").disabled = false;
+  $("preview").hidden = true; $("status").textContent = "";
+  meters(); sizes();
+}
+pad.addEventListener("pointerup", end);
+pad.addEventListener("pointercancel", end);
+pad.addEventListener("lostpointercapture", end);
+
+$("undo").onclick = () => { strokes.pop(); redraw(); $("preview").hidden = true; };
+$("clear").onclick = () => { stopIntro(); strokes = []; isExample = false; $("exampleTag").hidden = true; redraw(); $("preview").hidden = true; $("status").textContent = ""; };
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="z" && !isExample && strokes.length){ e.preventDefault(); $("undo").click(); }
+});
+
+/* ---------- settings ---------- */
+function persist(){ try{ localStorage.setItem("signpad.settings", JSON.stringify({pen:state.pen,ink:state.ink,size:state.size,fmt:state.fmt,res:state.res,crop:state.crop})); }catch(e){} }
+function seg(id, attr, key, conv=v=>v){
+  const box = $(id);
+  const sync = () => box.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(conv(b.dataset[attr])===state[key])));
+  box.addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state[key] = conv(b.dataset[attr]); sync(); persist(); changed(); });
+  sync();
+}
+function changed(){ if (isExample){ stopIntro(); restyleExample(); } previews(); sizes(); }
+seg("pens","pen","pen"); seg("inks","ink","ink"); seg("fmt","fmt","fmt"); seg("res","res","res",Number);
+const fmtSize = v => Number(v).toFixed(1);
+$("size").value = state.size; $("sizeOut").textContent = fmtSize(state.size);
+$("size").addEventListener("input", e => { state.size = Number(e.target.value); $("sizeOut").textContent = fmtSize(state.size); persist(); changed(); });
+$("crop").checked = state.crop; $("crop").onchange = e => { state.crop = e.target.checked; persist(); sizes(); };
+function restyleExample(){ strokes.forEach(s => { s.pen=state.pen; s.ink=state.ink; s.size=state.size; }); redraw(); }
+
+/* pen previews: one sample stroke drawn with each nib */
+const previewStroke = (() => {
+  const pts = []; let t = 0;
+  for (let i=0;i<=60;i++){ const u=i/60; const x=12+136*u, y=20 - 9*Math.sin(u*Math.PI*3.2) + 4*u;
+    if (pts.length){ const q=pts[pts.length-1]; t += 3 + Math.hypot(x-q.x,y-q.y)/(0.5+1.6*Math.abs(Math.cos(u*Math.PI*3.2))); }
+    pts.push({x,y,t,p:null}); }
+  return pts;
+})();
+function previews(){
+  document.querySelectorAll("canvas[data-prev]").forEach(c => {
+    const r = c.getBoundingClientRect(), dpr = window.devicePixelRatio||1;
+    if (!r.width) return;
+    c.width = Math.round(r.width*dpr); c.height = Math.round(r.height*dpr);
+    const ctx = c.getContext("2d"), s = Math.min(c.width/160, c.height/40);
+    ctx.clearRect(0,0,c.width,c.height);
+    paint(ctx, {pen:c.dataset.prev, ink:state.ink, size:Math.min(state.size,6)*0.7, pts:previewStroke}, true, s, -(c.width/s-160)/2, -(c.height/s-40)/2);
+  });
+}
+
+/* ---------- export ---------- */
+function region(){
+  const k = state.res * 1.5, m = 14;
+  let x0=0,y0=0,x1=W,y1=H;
+  if (state.crop){ const b = bounds(); if (b){ x0=b.x0-m; y0=b.y0-m; x1=b.x1+m; y1=b.y1+m; } }
+  return {k,x0,y0,w:Math.max(1,Math.round((x1-x0)*k)),h:Math.max(1,Math.round((y1-y0)*k))};
+}
+function sizes(){
+  const keep = state.res;
+  document.querySelectorAll("[data-size]").forEach(el => { state.res = Number(el.dataset.size); const g = region(); el.textContent = `${g.w}×${g.h}`; });
+  state.res = keep;
+}
+function render(){
+  const g = region(), c = document.createElement("canvas");
+  c.width = g.w; c.height = g.h;
+  const ctx = c.getContext("2d");
+  if (state.fmt === "jpg"){ ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,c.width,c.height); }
+  for (const st of strokes) paint(ctx, st, true, g.k, g.x0, g.y0);
+  return c;
+}
+let downloads = null;
+if (window.claude && window.claude.use) window.claude.use("downloads").then(d => { downloads = d; }).catch(() => {});
+$("save").onclick = async () => {
+  if (!strokes.length){ $("status").textContent = "먼저 서명을 그려 주세요."; return; }
+  stopIntro();
+  const c = render();
+  const type = state.fmt === "jpg" ? "image/jpeg" : "image/png";
+  const blob = await new Promise(r => c.toBlob(r, type, 0.95));
+  const name = `서명_${new Date().toISOString().slice(0,10)}.${state.fmt}`;
+  const url = URL.createObjectURL(blob);
+  $("previewImg").src = url; $("preview").hidden = false;
+  $("pvSize").textContent = `${c.width}×${c.height}px`; $("pvFmt").textContent = state.fmt.toUpperCase();
+  $("pvBytes").textContent = blob.size > 1048576 ? (blob.size/1048576).toFixed(1)+" MB" : Math.max(1,Math.round(blob.size/1024))+" KB";
+  if (!downloads){
+    const a = document.createElement("a"); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    $("status").textContent = `${name} 파일을 내려받았어요. 안 받아졌다면 미리보기 이미지를 오른쪽 클릭해서 저장하세요.`;
+    setState("ready","Exported"); return;
+  }
+  $("status").textContent = "저장 창을 열었어요.";
+  try {
+    await downloads.save({filename:name, data:blob});
+    $("status").textContent = `${name} 저장했어요.`; setState("ready","Exported");
+  } catch(err){
+    const code = err && err.code;
+    $("status").textContent = code==="declined" ? "저장을 취소했어요."
+      : code==="rate_limited" ? "이미 저장 창이 열려 있어요. 잠시 후 다시 눌러 주세요."
+      : "여기서는 바로 저장할 수 없어요. 미리보기 이미지를 오른쪽 클릭(휴대폰은 길게 누르기)해서 저장하세요.";
+  }
+};
+
+/* ---------- sample signature + boot sequence ---------- */
+function example(){
+  const mk = (fn, n, t0) => { const pts=[]; let t=t0; for(let i=0;i<=n;i++){ const u=i/n, p=fn(u); const prev=pts[pts.length-1]; if(prev){ const d=Math.hypot(p.x-prev.x,p.y-prev.y); t += 4 + d/(p.v||1.4); } pts.push({x:p.x,y:p.y,t,p:null}); } return pts; };
+  const s1 = mk(u => { const a = u*Math.PI*2*5.2, env = Math.sin(Math.PI*clamp(u*1.08,0,1));
+    return {x:190 + 520*u + 34*Math.sin(a)*env, y:228 - 58*Math.cos(a)*env - 40*Math.sin(u*Math.PI)*0.6, v:0.6+1.6*Math.abs(Math.cos(a))}; }, 320, 0);
+  const s2 = mk(u => ({x:230 + 520*u, y:300 - 30*Math.sin(u*Math.PI) + 10*u, v:0.8+2.6*Math.sin(Math.PI*u)}), 90, s1[s1.length-1].t + 260);
+  strokes = [s1,s2].map(pts => ({pen:state.pen, ink:state.ink, size:state.size, pts}));
+  isExample = true; $("exampleTag").hidden = false;
+}
+const BOOT = ["001 Initialize ink engine","002 Load nib profiles · 4","003 Calibrate pressure curve","004 Sample signature"];
+function bootLog(){
+  const box = $("boot"); box.innerHTML = ""; box.style.opacity = 1;
+  BOOT.forEach((line, i) => setTimeout(() => {
+    if (!intro) return;
+    const d = document.createElement("div"); d.innerHTML = `<b>${line}</b> <span class="okk">ok</span>`; box.appendChild(d);
+  }, i*160));
+}
+function startIntro(){
+  if (reduce){ setState("ready","Sample loaded"); return; }
+  intro = {t0: performance.now() + 650};
+  setState("boot","Initializing"); bootLog(); redraw();
+  const total = strokes[strokes.length-1].pts.slice(-1)[0].t, speed = 2.1;
+  const step = now => {
+    if (!intro) return;
+    const T = (now - intro.t0) * speed;
+    lctx.clearRect(0,0,live.width,live.height);
+    const v = view();
+    for (const st of strokes){
+      const pts = st.pts.filter(p => p.t <= T);
+      if (pts.length > 1) paint(lctx, {...st, pts}, pts.length === st.pts.length, v.s, v.ox, v.oy);
+    }
+    if (T >= total){ finishIntro(); return; }
+    intro.raf = requestAnimationFrame(step);
+  };
+  intro.raf = requestAnimationFrame(step);
+}
+function finishIntro(){
+  if (!intro) return;
+  cancelAnimationFrame(intro.raf); intro = null;
+  lctx.clearRect(0,0,live.width,live.height);
+  setTimeout(() => { $("boot").style.opacity = 0; }, 900);
+  redraw();
+}
+function stopIntro(){ if (intro){ finishIntro(); } $("boot").style.opacity = 0; }
+
+example();
+new ResizeObserver(() => { resize(); previews(); }).observe(pad);
+resize(); previews();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(previews);
+startIntro();
+})();
+</script>
+</body>
+</html>
