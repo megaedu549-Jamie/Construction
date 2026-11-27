@@ -210,7 +210,7 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);display
       <span class="mono tnum" id="readout">X:0000PX Y:0000PX</span>
     </div>
     <div class="field"><div class="corner-b"></div>
-      <div class="pad" id="pad">
+      <div class="pad" id="pad" data-cursor="own">
         <div class="guide"><span class="mono">Sign here</span></div>
         <canvas id="base"></canvas><canvas id="live"></canvas>
         <div class="tag mono" id="exampleTag"><i>Sample</i><span>그리기 시작하면 지워져요</span></div>
@@ -618,5 +618,6 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(previews);
 startIntro();
 })();
 </script>
+<script src="/cursor.js" defer></script>
 </body>
 </html>
