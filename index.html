@@ -369,6 +369,7 @@ const TOOLS = [
   {href:"scaf/", name:"비계 계획서", d:"동·층을 고르면 평면도·발판도가 들어가고, 클라우드 표시 후 PPT로 저장·인쇄합니다."},
   {href:"shor/", name:"동바리 계획서", d:"동·층을 고르면 평면도·멍에도·발판도가 들어가고, PPT로 저장·인쇄합니다."},
   {href:"formwork/", name:"거푸집 해체 계획서", d:"층별 위치 도면과 현장 사진을 넣어 엑셀 양식으로 저장·인쇄합니다."},
+  {href:"sign/", name:"Ink Sign", latin:1, d:"마우스나 펜으로 쓴 서명을 실제 잉크처럼 그려 투명 PNG · JPG로 저장합니다."},
 ];
 
 (() => {
@@ -535,5 +536,6 @@ const t0 = Date.now();
 render(); route();
 })();
 </script>
+<script src="/cursor.js" defer></script>
 </body>
 </html>
